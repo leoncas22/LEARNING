@@ -1,0 +1,1121 @@
+// ============================================================================
+// LMS Platform — Prisma Schema (Phase 2)
+// PostgreSQL + Prisma ORM, multi-tenant (tenant key = companyId)
+//
+// Delete-behavior conventions used throughout this schema (see docs/database.md
+// for the full rationale):
+//   - Cascade  → child has no meaning without the parent (Module/Lesson under
+//                Course, options under Question, junction tables).
+//   - Restrict → historical/compliance data. Blocks the delete instead of
+//                silently destroying history (Certificates, QuizAttempts,
+//                QuizAnswers, AssignmentSubmissions, and anything hanging off
+//                a User once they have activity). Company/User are meant to be
+//                soft-deleted (status/deletedAt) in the application layer —
+//                Restrict is the DB-level safety net for that rule.
+//   - SetNull  → audit trail that should outlive the referenced row
+//                (ActivityLog actor/tenant).
+// ============================================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================================
+// ORGANIZATION
+// ============================================================================
+
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum SubscriptionPlan {
+  FREE
+  STARTER
+  BUSINESS
+  ENTERPRISE
+}
+
+/// A tenant on the platform. Nearly every business table below carries a
+/// companyId (directly or via a parent) so data never crosses tenants.
+model Company {
+  id               String           @id @default(uuid())
+  name             String
+  slug             String           @unique
+  logo             String?
+  email            String?
+  phone            String?
+  address          String?
+  industry         String?
+  subscriptionPlan SubscriptionPlan @default(FREE)
+  status           CompanyStatus    @default(ACTIVE)
+
+  /// Soft delete — companies are deactivated (status), never hard-deleted
+  /// once they have any real data. See onDelete: Restrict on children.
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users         User[]
+  departments   Department[]
+  positions     Position[]
+  courses       Course[]
+  learningPaths LearningPath[]
+  activityLogs  ActivityLog[]
+  announcements Announcement[]
+  // Phase 6
+  certifications Certification[]
+  certificates   Certificate[]  @relation("CompanyCertificates")
+  competencies   Competency[]   @relation("CompanyCompetencies")
+
+  @@index([status])
+  @@map("companies")
+}
+
+/// Fixed set of roles as a relational table (rather than a free string) so
+/// the FK + enum combination makes typos like "Admin"/"admin" impossible.
+enum RoleName {
+  SUPER_ADMIN
+  COMPANY_ADMIN
+  INSTRUCTOR
+  EMPLOYEE
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        RoleName @unique
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@map("roles")
+}
+
+model Department {
+  id          String          @id @default(uuid())
+  companyId   String
+  company     Company         @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  name        String
+  description String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  users User[]
+  announcements Announcement[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("departments")
+}
+
+model Position {
+  id          String   @id @default(uuid())
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Restrict)
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  users User[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@map("positions")
+}
+
+// ============================================================================
+// USER MANAGEMENT
+// ============================================================================
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+model User {
+  id String @id @default(uuid())
+
+  /// Nullable: SUPER_ADMIN accounts are platform-level and belong to no company.
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  roleId String
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Restrict)
+
+  departmentId String?
+  department   Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+
+  positionId String?
+  position   Position? @relation(fields: [positionId], references: [id], onDelete: SetNull)
+
+  name  String
+  /// Global unique: login (Phase 3) authenticates by email alone, before any
+  /// tenant is known, and a person account belongs to exactly one company.
+  email String @unique
+
+  password String
+  avatar   String?
+
+  /// Human-readable identifier, unique per company (e.g. EMP-001).
+  employeeNumber String?
+
+  status      UserStatus @default(ACTIVE)
+  lastLoginAt DateTime?
+
+  /// Set once the user confirms their email (Phase 3). Null = unverified.
+  emailVerifiedAt DateTime?
+
+  /// Soft delete — see schema header. Users with any activity are never
+  /// hard-deleted; deactivate via status + deletedAt instead.
+  deletedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  refreshTokens       RefreshToken[]
+  passwordResetTokens PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+
+  // As instructor
+  instructedCourses Course[] @relation("CourseInstructor")
+  createdQuizzes    Quiz[]   @relation("QuizCreatedBy")
+
+  // As learner
+  enrollments    Enrollment[]     @relation("EnrollmentUser")
+  learningPathAssignments LearningPathAssignment[]
+  lessonProgress LessonProgress[]
+  quizAttempts   QuizAttempt[]
+  // Phase 6 — Certificate (replaces Phase 2 stub; relation name matches Certificate.user)
+  certificates         Certificate[]
+  employeeCompetencies EmployeeCompetency[]
+
+  // As HR / whoever assigns training
+  assignedEnrollments Enrollment[] @relation("EnrollmentAssignedBy")
+
+  // Assignments (course homework, not "training assignment")
+  submittedAssignments AssignmentSubmission[] @relation("SubmissionOwner")
+  gradedSubmissions    AssignmentSubmission[] @relation("SubmissionGrader")
+
+  notifications Notification[]
+  announcementsCreated Announcement[] @relation("AnnouncementCreator")
+  activityLogs  ActivityLog[]
+  learningPathsCreated LearningPath[] @relation("LearningPathCreator")
+  learningPathsAssigned LearningPathAssignment[] @relation("LearningPathAssigner")
+
+  @@unique([companyId, employeeNumber])
+  @@index([companyId])
+  @@index([departmentId])
+  @@index([positionId])
+  @@map("users")
+}
+
+// ============================================================================
+// LEARNING
+// ============================================================================
+
+enum CourseStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+enum CourseDifficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model Course {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  instructorId String?
+  instructor   User?   @relation("CourseInstructor", fields: [instructorId], references: [id], onDelete: SetNull)
+
+  title       String
+  slug        String
+  description String?           @db.Text
+  thumbnail   String?
+  category    String?
+  difficulty  CourseDifficulty  @default(BEGINNER)
+  /// Total duration in minutes.
+  duration    Int?
+  /// 0–100, enforced in the application layer (see docs/database.md §Validation).
+  passingScore Int    @default(80)
+  status      CourseStatus      @default(DRAFT)
+
+  deletedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  modules              Module[]
+  enrollments          Enrollment[]
+  quizzes              Quiz[]
+  assignments          Assignment[]
+  learningPathCourses  LearningPathCourse[]
+  // Phase 6
+  certifications       Certification[]     @relation("CertificationCourse")
+  courseCompetencies   CourseCompetency[]  @relation("CourseCompetencies")
+
+  @@unique([companyId, slug])
+  @@index([companyId])
+  @@index([instructorId])
+  @@index([status])
+  @@map("courses")
+}
+
+model Module {
+  id          String   @id @default(uuid())
+  courseId    String
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title       String
+  description String?  @db.Text
+  order       Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  lessons Lesson[]
+
+  @@unique([courseId, order])
+  @@index([courseId])
+  @@map("modules")
+}
+
+enum LessonType {
+  TEXT
+  VIDEO
+  PDF
+  DOCUMENT
+  LINK
+}
+
+model Lesson {
+  id          String     @id @default(uuid())
+  moduleId    String
+  module      Module     @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  description String?    @db.Text
+  /// Populated when type = TEXT.
+  content     String?    @db.Text
+  type        LessonType
+  /// Populated when type = VIDEO.
+  videoUrl    String?
+  /// Populated when type = PDF | DOCUMENT.
+  fileUrl     String?
+  /// Duration in minutes.
+  duration    Int?
+  order       Int
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  /// Restrict, not Cascade: once learners have progress on a lesson, that
+  /// history must survive content edits. Archive/unpublish the course
+  /// instead of deleting lessons that already have progress.
+  lessonProgress LessonProgress[]
+  /// Quizzes attached to this lesson (Phase 5). A quiz may instead be
+  /// attached at the course level only — see Quiz.lessonId.
+  quizzes        Quiz[]
+
+  @@unique([moduleId, order])
+  @@index([moduleId])
+  @@map("lessons")
+}
+
+enum EnrollmentStatus {
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+model Enrollment {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation("EnrollmentUser", fields: [userId], references: [id], onDelete: Restrict)
+
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  assignedById String?
+  assignedBy   User?   @relation("EnrollmentAssignedBy", fields: [assignedById], references: [id], onDelete: SetNull)
+
+  status      EnrollmentStatus @default(ASSIGNED)
+  enrolledAt  DateTime         @default(now())
+  /// Training deadline, set by whoever assigns the course (Phase 4). OVERDUE
+  /// is derived (dueDate < now() && status != COMPLETED), not stored.
+  dueDate     DateTime?
+  completedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  /// A learner cannot be enrolled twice in the same course.
+  @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
+  @@map("enrollments")
+}
+
+model LessonProgress {
+  id String @id @default(uuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  lessonId String
+  lesson   Lesson @relation(fields: [lessonId], references: [id], onDelete: Restrict)
+
+  /// 0–100. Enforced at the application layer (Postgres CHECK constraint is
+  /// documented in docs/database.md and can be added via a raw migration).
+  progressPercentage Int      @default(0)
+  completed          Boolean  @default(false)
+  startedAt          DateTime?
+  completedAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, lessonId])
+  @@index([userId])
+  @@index([lessonId])
+  @@map("lesson_progress")
+}
+
+// ============================================================================
+// ASSESSMENT
+// ============================================================================
+
+enum QuizStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Quiz {
+  id       String @id @default(uuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  /// Optional: attach the quiz to a specific lesson (preferred per spec)
+  /// rather than only the course level. Nullable so course-level quizzes
+  /// (not tied to one lesson) remain supported.
+  lessonId String?
+  lesson   Lesson? @relation(fields: [lessonId], references: [id], onDelete: SetNull)
+
+  title       String
+  description String? @db.Text
+  /// Shown to the learner before they start an attempt.
+  instructions String? @db.Text
+
+  /// 0–100, enforced in the application layer.
+  passingScore Int     @default(80)
+  /// Minutes. Null = untimed.
+  timeLimit    Int?
+  attemptLimit Int     @default(1)
+  status       QuizStatus @default(DRAFT)
+
+  shuffleQuestions    Boolean @default(false)
+  shuffleOptions      Boolean @default(false)
+  /// Whether a learner sees which answers were correct after grading —
+  /// gates the correct-answer fields in the result API (see quiz.service.js).
+  showCorrectAnswers  Boolean @default(false)
+
+  createdById String?
+  createdBy   User?   @relation("QuizCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  questions Question[]
+  attempts  QuizAttempt[]
+  // Phase 6
+  certificationRequirements CertificationRequirement[] @relation("CertificationQuiz")
+
+  @@index([courseId])
+  @@index([lessonId])
+  @@index([status])
+  @@map("quizzes")
+}
+
+enum QuestionType {
+  MULTIPLE_CHOICE
+  MULTIPLE_ANSWER
+  TRUE_FALSE
+  ESSAY
+  /// Auto-graded free-text answer (Phase 5), matched against
+  /// Question.acceptedAnswers after normalization. Distinct from ESSAY,
+  /// which remains reserved for future manual grading.
+  SHORT_ANSWER
+}
+
+model Question {
+  id     String @id @default(uuid())
+  quizId String
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Cascade)
+
+  question String       @db.Text
+  type     QuestionType
+  /// Points awarded for a fully correct answer; used for auto-grading on
+  /// MULTIPLE_CHOICE / MULTIPLE_ANSWER / TRUE_FALSE / SHORT_ANSWER. ESSAY
+  /// is reserved for future manual grading (not exposed in Phase 5 UI).
+  points   Int          @default(1)
+  order    Int
+
+  /// Shown to the learner after grading (only when Quiz.showCorrectAnswers
+  /// is true) — explains why an answer is correct.
+  explanation String? @db.Text
+
+  /// SHORT_ANSWER only: normalized accepted answers, e.g.
+  /// ["multi factor authentication", "multi-factor authentication"].
+  /// See utils/normalizeAnswer.js for the exact normalization rule.
+  acceptedAnswers Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  options QuestionOption[]
+  answers QuizAnswer[]
+
+  @@unique([quizId, order])
+  @@index([quizId])
+  @@map("questions")
+}
+
+model QuestionOption {
+  id         String   @id @default(uuid())
+  questionId String
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+
+  optionText String
+  /// Source of truth for grading — never sent to the frontend pre-attempt.
+  isCorrect  Boolean  @default(false)
+  order      Int
+
+  selectedInAnswers QuizAnswerOption[]
+
+  @@index([questionId])
+  @@map("question_options")
+}
+
+enum QuizAttemptStatus {
+  IN_PROGRESS
+  /// Learner submitted; grading is complete or in progress. Added Phase 5.
+  SUBMITTED
+  /// Terminal: grading finished (pass/fail is in the `passed` field).
+  /// Added Phase 5.
+  GRADED
+  /// Deadline passed before submission; answers saved so far were graded
+  /// as-is and no further changes are accepted. Added Phase 5.
+  EXPIRED
+  /// Retained in the enum for the rows that predate Phase 5 (Postgres
+  /// can't drop enum values in place) but no longer written by the
+  /// application — pass/fail now lives in QuizAttempt.passed instead,
+  /// decoupled from the process-state enum.
+  PASSED
+  FAILED
+}
+
+model QuizAttempt {
+  id String @id @default(uuid())
+
+  quizId String
+  /// Restrict: a quiz that has attempt history cannot be hard-deleted —
+  /// archive it (status = ARCHIVED) instead.
+  quiz   Quiz   @relation(fields: [quizId], references: [id], onDelete: Restrict)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  attemptNumber Int
+  /// Percentage score, 0–100 (earnedPoints / totalPoints × 100), set once
+  /// grading completes.
+  score         Int?
+  /// Null until graded; true/false once `status` reaches GRADED.
+  passed        Boolean?
+  status        QuizAttemptStatus @default(IN_PROGRESS)
+
+  startedAt   DateTime  @default(now())
+  /// When the learner hit Submit (or the deadline forced submission).
+  submittedAt DateTime?
+  /// When grading finished — the attempt's terminal timestamp.
+  completedAt DateTime?
+
+  /// Snapshot of the question sequence shown to this learner, captured at
+  /// attempt start — an ordered array of question ids. Required so a later
+  /// quiz edit (reorder, add/remove questions) can never retroactively
+  /// change what an in-progress or historical attempt looked like.
+  questionOrder Json?
+  /// Snapshot of option order per question, when shuffleOptions is on:
+  /// { [questionId]: [optionId, ...] }.
+  optionOrder   Json?
+
+  answers QuizAnswer[]
+
+  @@unique([quizId, userId, attemptNumber])
+  @@index([userId])
+  @@index([quizId])
+  @@index([status])
+  @@map("quiz_attempts")
+}
+
+model QuizAnswer {
+  id String @id @default(uuid())
+
+  attemptId String
+  attempt   QuizAttempt @relation(fields: [attemptId], references: [id], onDelete: Cascade)
+
+  questionId String
+  /// Restrict: preserve what was actually asked/answered even if the quiz
+  /// content is later edited; edit by versioning/archiving, not deleting.
+  question   Question    @relation(fields: [questionId], references: [id], onDelete: Restrict)
+
+  /// Free-text answer, used for ESSAY and as a human-readable snapshot.
+  answerText   String?  @db.Text
+  isCorrect    Boolean?
+  pointsEarned Int?
+
+  createdAt DateTime @default(now())
+
+  /// For MULTIPLE_ANSWER questions: which options were selected.
+  selectedOptions QuizAnswerOption[]
+
+  @@unique([attemptId, questionId])
+  @@index([attemptId])
+  @@index([questionId])
+  @@map("quiz_answers")
+}
+
+/// Junction table so a single QuizAnswer can record multiple selected
+/// options — required for MULTIPLE_ANSWER questions, which a single
+/// isCorrect/optionId pair on QuizAnswer could not represent. Added for
+/// data-integrity reasons only (see rule #19 in the Phase 2 brief).
+model QuizAnswerOption {
+  id String @id @default(uuid())
+
+  quizAnswerId String
+  quizAnswer   QuizAnswer @relation(fields: [quizAnswerId], references: [id], onDelete: Cascade)
+
+  questionOptionId String
+  questionOption   QuestionOption @relation(fields: [questionOptionId], references: [id], onDelete: Restrict)
+
+  createdAt DateTime @default(now())
+
+  @@unique([quizAnswerId, questionOptionId])
+  @@map("quiz_answer_options")
+}
+
+model Assignment {
+  id       String @id @default(uuid())
+  courseId String
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  title       String
+  description String?   @db.Text
+  dueDate     DateTime?
+  maxScore    Int       @default(100)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  submissions AssignmentSubmission[]
+
+  @@index([courseId])
+  @@map("assignments")
+}
+
+enum AssignmentSubmissionStatus {
+  SUBMITTED
+  REVIEWED
+  RETURNED
+}
+
+model AssignmentSubmission {
+  id String @id @default(uuid())
+
+  assignmentId String
+  /// Restrict: a graded submission is a historical record for the learner.
+  assignment   Assignment @relation(fields: [assignmentId], references: [id], onDelete: Restrict)
+
+  userId String
+  user   User   @relation("SubmissionOwner", fields: [userId], references: [id], onDelete: Restrict)
+
+  answer String? @db.Text
+  fileUrl String?
+
+  score    Int?
+  feedback String? @db.Text
+  status   AssignmentSubmissionStatus @default(SUBMITTED)
+
+  submittedAt DateTime  @default(now())
+  gradedAt    DateTime?
+
+  gradedById String?
+  gradedBy   User?   @relation("SubmissionGrader", fields: [gradedById], references: [id], onDelete: SetNull)
+
+  @@unique([assignmentId, userId])
+  @@index([assignmentId])
+  @@index([userId])
+  @@map("assignment_submissions")
+}
+
+// ============================================================================
+// LEARNING PATH
+// ============================================================================
+
+enum LearningPathStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model LearningPath {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  title       String
+  description String?             @db.Text
+  status      LearningPathStatus  @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  createdById String?
+  createdBy   User? @relation("LearningPathCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  publishedAt DateTime?
+
+  courses LearningPathCourse[]
+  assignments LearningPathAssignment[]
+
+  @@index([companyId])
+  @@index([status])
+  @@map("learning_paths")
+}
+
+model LearningPathCourse {
+  id             String       @id @default(uuid())
+  learningPathId String
+  learningPath   LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+
+  courseId String
+  /// Restrict: don't let a course vanish out from under a published path.
+  course   Course @relation(fields: [courseId], references: [id], onDelete: Restrict)
+
+  order    Int
+  required Boolean @default(true)
+
+  @@unique([learningPathId, courseId])
+  @@index([learningPathId])
+  @@index([courseId])
+  @@map("learning_path_courses")
+}
+
+model LearningPathAssignment {
+  id            String      @id @default(uuid())
+  learningPathId String
+  learningPath  LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  assignedById  String?
+  assignedBy    User?       @relation("LearningPathAssigner", fields: [assignedById], references: [id], onDelete: SetNull)
+  dueDate       DateTime?
+  assignedAt    DateTime    @default(now())
+
+  @@unique([learningPathId, userId])
+  @@index([learningPathId])
+  @@index([userId])
+  @@map("learning_path_assignments")
+}
+
+// ============================================================================
+// CERTIFICATION & COMPETENCY (Phase 6)
+// ============================================================================
+
+// ── Certification ─────────────────────────────────────────────────────────
+
+enum CertificationStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+/// A Certification definition — describes WHAT must be done to earn a
+/// certificate (which course, which quiz, minimum score, validity period).
+/// Company-scoped: certifications never cross tenant boundaries.
+model Certification {
+  id        String  @id @default(uuid())
+  companyId String
+  company   Company @relation(fields: [companyId], references: [id], onDelete: Restrict)
+
+  courseId String?
+  course   Course? @relation("CertificationCourse", fields: [courseId], references: [id], onDelete: SetNull)
+
+  title       String
+  description String?           @db.Text
+  /// Validity in days. Null = never expires.
+  validityDays Int?
+  status      CertificationStatus @default(DRAFT)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  requirements CertificationRequirement[]
+  certificates Certificate[]
+
+  @@index([companyId])
+  @@index([status])
+  @@map("certifications")
+}
+
+/// The requirements that must be met to earn a Certification.
+/// Separate table so requirements can be inspected/updated independently.
+model CertificationRequirement {
+  id              String        @id @default(uuid())
+  certificationId String
+  certification   Certification @relation(fields: [certificationId], references: [id], onDelete: Cascade)
+
+  /// Required course completion percentage (0–100). Null = not required.
+  minProgressPct Int?
+  /// Required quiz. Null = no quiz required.
+  quizId         String?
+  quiz           Quiz?          @relation("CertificationQuiz", fields: [quizId], references: [id], onDelete: SetNull)
+  /// Minimum quiz score (0–100). Used when quizId is set.
+  minQuizScore   Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("certification_requirements")
+}
+
+// ── Certificate ───────────────────────────────────────────────────────────
+
+enum CertificateStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+/// An issued certificate — proof an employee met a Certification's requirements.
+/// Immutable history: never hard-deleted, never rewritten. Revocation only
+/// changes status to REVOKED. A new certificate is created on renewal.
+model Certificate {
+  id              String        @id @default(uuid())
+
+  certificationId String
+  certification   Certification @relation(fields: [certificationId], references: [id], onDelete: Restrict)
+
+  userId String
+  /// Restrict: certificates are permanent compliance records.
+  user   User   @relation(fields: [userId], references: [id], onDelete: Restrict)
+
+  companyId String
+  company   Company @relation("CompanyCertificates", fields: [companyId], references: [id], onDelete: Restrict)
+
+  /// Human-readable unique number, e.g. CERT-2026-000001.
+  certificateNumber String @unique
+  /// Cryptographically secure random token for public verification.
+  verificationCode  String @unique
+
+  issuedAt  DateTime  @default(now())
+  /// Null if the certification has no validity period.
+  expiresAt DateTime?
+
+  status         CertificateStatus @default(ACTIVE)
+  /// Free-text reason recorded when status → REVOKED.
+  revocationNote String?           @db.Text
+  revokedAt      DateTime?
+
+  /// The quiz score that fulfilled the certification requirement (snapshot).
+  quizScore Int?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([certificationId])
+  @@index([status])
+  @@index([verificationCode])
+  @@index([certificateNumber])
+  @@map("certificates")
+}
+
+// ── Competency ────────────────────────────────────────────────────────────
+
+enum CompetencyStatus {
+  ACTIVE
+  ARCHIVED
+}
+
+/// A measurable skill or knowledge area, defined per company.
+/// Company A's competencies are never visible to Company B.
+model Competency {
+  id          String          @id @default(uuid())
+  companyId   String
+  company     Company         @relation("CompanyCompetencies", fields: [companyId], references: [id], onDelete: Restrict)
+
+  name        String
+  description String?         @db.Text
+  category    String?
+  status      CompetencyStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  levels            CompetencyLevelConfig[]
+  courseCompetencies CourseCompetency[]
+  employeeCompetencies EmployeeCompetency[]
+
+  @@unique([companyId, name])
+  @@index([companyId])
+  @@index([status])
+  @@map("competencies")
+}
+
+/// Configurable level thresholds for a competency.
+/// Each row defines one level band (BEGINNER / INTERMEDIATE / ADVANCED / EXPERT).
+model CompetencyLevelConfig {
+  id           String @id @default(uuid())
+  competencyId String
+  competency   Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  /// One of: BEGINNER, INTERMEDIATE, ADVANCED, EXPERT
+  level       String
+  description String? @db.Text
+  /// Minimum score to reach this level (0–100).
+  minScore    Int
+  /// Maximum score for this level band (0–100). Inclusive.
+  maxScore    Int
+
+  @@unique([competencyId, level])
+  @@index([competencyId])
+  @@map("competency_level_configs")
+}
+
+// ── CourseCompetency ──────────────────────────────────────────────────────
+
+/// Declares that completing a Course contributes to a Competency.
+/// `targetLevel` is the level the employee can achieve. `weight` allows
+/// future multi-source score blending (Phase 6 uses 1.0 as default).
+model CourseCompetency {
+  id           String     @id @default(uuid())
+  courseId     String
+  course       Course     @relation("CourseCompetencies", fields: [courseId], references: [id], onDelete: Cascade)
+  competencyId String
+  competency   Competency @relation(fields: [competencyId], references: [id], onDelete: Cascade)
+
+  /// Target competency level this course unlocks: BEGINNER/INTERMEDIATE/ADVANCED/EXPERT
+  targetLevel String
+  /// Relative weight for score blending. Default 1.0.
+  weight Float @default(1.0)
+
+  @@unique([courseId, competencyId])
+  @@index([courseId])
+  @@index([competencyId])
+  @@map("course_competencies")
+}
+
+// ── EmployeeCompetency ────────────────────────────────────────────────────
+
+/// Server-calculated competency achievement for one employee.
+/// One row per (user, competency) — upserted whenever a relevant course or
+/// quiz is completed. Never written by the frontend.
+model EmployeeCompetency {
+  id           String     @id @default(uuid())
+  userId       String
+  user         User       @relation(fields: [userId], references: [id], onDelete: Restrict)
+  competencyId String
+  competency   Competency @relation(fields: [competencyId], references: [id], onDelete: Restrict)
+
+  /// Calculated level: BEGINNER / INTERMEDIATE / ADVANCED / EXPERT
+  level       String
+  /// Numeric score 0–100 that determined the level.
+  score       Int
+  achievedAt  DateTime @default(now())
+  /// Where the score came from: COURSE or QUIZ (Phase 6), MANUAL (future).
+  source      String   @default("COURSE")
+  /// FK to the course or quiz that produced this score (informational).
+  sourceId    String?
+
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, competencyId])
+  @@index([userId])
+  @@index([competencyId])
+  @@map("employee_competencies")
+}
+
+
+
+// ============================================================================
+// NOTIFICATION
+// ============================================================================
+
+enum NotificationType {
+  TRAINING_ASSIGNED
+  TRAINING_DEADLINE
+  COURSE_COMPLETED
+  QUIZ_RESULT
+  CERTIFICATE_ISSUED
+  // Phase 6 — Certification & Competency Management
+  CERTIFICATE_EXPIRING
+  CERTIFICATE_EXPIRED
+  CERTIFICATE_REVOKED
+  ANNOUNCEMENT
+  LEARNING_PATH_ASSIGNED
+}
+
+model Notification {
+  id     String @id @default(uuid())
+  userId String
+  /// Cascade: notifications are ephemeral UI state, not a compliance record.
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  title   String
+  message String           @db.Text
+  type    NotificationType
+  isRead  Boolean          @default(false)
+
+  createdAt DateTime  @default(now())
+  readAt    DateTime?
+
+  @@index([userId])
+  @@index([isRead])
+  @@map("notifications")
+}
+
+// ============================================================================
+// ANNOUNCEMENTS
+// ============================================================================
+
+enum AnnouncementStatus {
+  DRAFT
+  PUBLISHED
+  ARCHIVED
+}
+
+model Announcement {
+  id           String             @id @default(uuid())
+  companyId    String
+  company      Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  createdById  String
+  createdBy    User               @relation("AnnouncementCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  departmentId String?
+  department   Department?        @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  title        String
+  content      String             @db.Text
+  status       AnnouncementStatus @default(DRAFT)
+  publishedAt  DateTime?
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+  @@index([companyId, status])
+  @@index([departmentId])
+  @@index([createdById])
+  @@map("announcements")
+}
+
+// ============================================================================
+// AUDIT
+// ============================================================================
+
+// ============================================================================
+// AUTHENTICATION (Phase 3)
+// ============================================================================
+
+/// One row per issued refresh token. Only a hash is stored — the raw token
+/// is returned to the client once (as an HttpOnly cookie) and never
+/// persisted. Session data, so Cascade on user delete is fine (compare to
+/// Certificate/QuizAttempt, which use Restrict because they're historical
+/// records — a session is not).
+model RefreshToken {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String   @unique
+  expiresAt DateTime
+  revokedAt DateTime?
+
+  /// Informational pointer to the token that replaced this one during
+  /// rotation (not a FK — the replacement may be created in the same
+  /// transaction as this row's revocation, and it never needs a reverse
+  /// join). Used only to detect/react to reuse of a revoked token.
+  replacedByTokenId String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("refresh_tokens")
+}
+
+/// One-time, expirable token for the forgot/reset password flow.
+model PasswordResetToken {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("password_reset_tokens")
+}
+
+/// One-time, expirable token for the email verification flow.
+model EmailVerificationToken {
+  id     String @id @default(uuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  tokenHash String    @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+model ActivityLog {
+  id String @id @default(uuid())
+
+  userId String?
+  /// SetNull: the audit trail must survive even if the actor account is
+  /// later removed.
+  user   User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  companyId String?
+  company   Company? @relation(fields: [companyId], references: [id], onDelete: SetNull)
+
+  action   String
+  entity   String
+  entityId String?
+  /// Arbitrary structured context, e.g. { "courseTitle": "Cyber Security Awareness" }.
+  metadata Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([companyId])
+  @@index([userId])
+  @@index([createdAt])
+  @@map("activity_logs")
+}

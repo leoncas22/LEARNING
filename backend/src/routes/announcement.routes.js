@@ -1,0 +1,15 @@
+import { Router } from 'express';
+import { authenticate } from '../middleware/authenticate.js';
+import { authorize } from '../middleware/authorize.js';
+import { validate } from '../middleware/validate.js';
+import { announcementIdSchema, createAnnouncementSchema, listAnnouncementsSchema, updateAnnouncementSchema } from '../validators/phase8.validation.js';
+import * as controller from '../controllers/announcement.controller.js';
+const router = Router();
+router.use(authenticate);
+router.get('/', validate(listAnnouncementsSchema), controller.list);
+router.get('/:id', validate(announcementIdSchema), controller.get);
+router.post('/', authorize('COMPANY_ADMIN'), validate(createAnnouncementSchema), controller.create);
+router.patch('/:id', authorize('COMPANY_ADMIN'), validate(updateAnnouncementSchema), controller.update);
+router.post('/:id/publish', authorize('COMPANY_ADMIN'), validate(announcementIdSchema), controller.publish);
+router.post('/:id/archive', authorize('COMPANY_ADMIN'), validate(announcementIdSchema), controller.archive);
+export default router;

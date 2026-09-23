@@ -1,0 +1,21 @@
+import { Router } from 'express';
+import { authenticate } from '../middleware/authenticate.js';
+import { authorize } from '../middleware/authorize.js';
+import { validate } from '../middleware/validate.js';
+import * as controller from '../controllers/learningPath.controller.js';
+import { listLearningPathsSchema, learningPathIdSchema, createLearningPathSchema, updateLearningPathSchema, addPathCourseSchema, removePathCourseSchema, reorderPathCoursesSchema, assignLearningPathSchema, listPathProgressSchema } from '../validators/learningPath.validation.js';
+
+const router = Router();
+router.use(authenticate);
+router.get('/', authorize('COMPANY_ADMIN'), validate(listLearningPathsSchema), controller.list);
+router.post('/', authorize('COMPANY_ADMIN'), validate(createLearningPathSchema), controller.create);
+router.get('/:id', authorize('COMPANY_ADMIN'), validate(learningPathIdSchema), controller.get);
+router.patch('/:id', authorize('COMPANY_ADMIN'), validate(updateLearningPathSchema), controller.update);
+router.post('/:id/publish', authorize('COMPANY_ADMIN'), validate(learningPathIdSchema), controller.publish);
+router.post('/:id/archive', authorize('COMPANY_ADMIN'), validate(learningPathIdSchema), controller.archive);
+router.post('/:id/courses', authorize('COMPANY_ADMIN'), validate(addPathCourseSchema), controller.addCourse);
+router.delete('/:id/courses/:courseId', authorize('COMPANY_ADMIN'), validate(removePathCourseSchema), controller.removeCourse);
+router.patch('/:id/courses/reorder', authorize('COMPANY_ADMIN'), validate(reorderPathCoursesSchema), controller.reorder);
+router.post('/:id/assign', authorize('COMPANY_ADMIN'), validate(assignLearningPathSchema), controller.assign);
+router.get('/:id/progress', authorize('COMPANY_ADMIN'), validate(listPathProgressSchema), controller.progress);
+export default router;
