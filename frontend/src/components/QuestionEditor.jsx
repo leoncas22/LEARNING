@@ -183,7 +183,7 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
             placeholder={'One per line, e.g.\nmulti factor authentication\nmulti-factor authentication'}
           />
           <p className="mt-1.5 text-xs text-espresso/50">
-            Matching ignores case, extra spaces, and hyphens — "MFA" and "mfa" would need to be listed separately.
+            Matching ignores case, extra spaces, and hyphens — &quot;MFA&quot; and &quot;mfa&quot; would need to be listed separately.
           </p>
           {fieldErrors.acceptedAnswers && <p className="mt-1.5 text-sm text-burgundy">{fieldErrors.acceptedAnswers}</p>}
         </div>

@@ -1,0 +1,2 @@
+LMS API listening on http://localhost:5000 [development]
+[0mGET /api/notifications [33m401[0m 5.540 ms - 76[0m

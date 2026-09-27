@@ -1,0 +1,29 @@
+
+> lms-backend@1.0.0 start
+> node src/server.js
+
+LMS API listening on http://localhost:5000 [development]
+[0mGET /api/health [32m200[0m 26.347 ms - 123[0m
+[0mPOST /api/auth/login [32m200[0m 604.122 ms - 882[0m
+[0mPOST /api/auth/login [32m200[0m 65.317 ms - 882[0m
+[0mGET /api/notifications [32m200[0m 48.336 ms - 138[0m
+[0mGET /api/notifications/unread-count [32m200[0m 15.900 ms - 41[0m
+[0mGET /api/announcements [32m200[0m 20.888 ms - 86[0m
+[0mGET /api/audit-logs [32m200[0m 12.381 ms - 10637[0m
+[0mGET /api/auth/me [33m401[0m 2.986 ms - 76[0m
+[0mGET /api/auth/me [33m401[0m 1.456 ms - 76[0m
+[0mPOST /api/auth/refresh [33m401[0m 1.483 ms - 75[0m
+[0mGET /api/auth/me [33m401[0m 1.286 ms - 76[0m
+[0mGET /api/auth/me [33m401[0m 1.144 ms - 76[0m
+[0mPOST /api/auth/refresh [33m401[0m 0.540 ms - 75[0m
+[0mPOST /api/auth/login [32m200[0m 104.304 ms - 882[0m
+[0mGET /api/reports/dashboard [32m200[0m 100.493 ms - 3829[0m
+[0mGET /api/notifications?limit=8 [32m200[0m 179.871 ms - 137[0m
+[0mGET /api/notifications?limit=8 [36m304[0m 19.099 ms - -[0m
+[0mGET /api/notifications [33m401[0m 0.979 ms - 76[0m
+[0mGET /api/announcements [33m401[0m 1.261 ms - 76[0m
+[0mGET /api/audit-logs [33m401[0m 1.830 ms - 76[0m
+[0mPOST /api/auth/login [32m200[0m 218.383 ms - 871[0m
+[0mGET /api/instructor/dashboard [33m404[0m 1.582 ms - 102[0m
+[0mPOST /api/auth/login [32m200[0m 194.049 ms - 871[0m
+[0mGET /api/instructor/dashboard [33m404[0m 0.480 ms - 102[0m

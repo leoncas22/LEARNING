@@ -123,7 +123,7 @@ export default function CoursePage() {
           {courseCompleted ? (
             <div className="text-center py-16">
               <p className="text-lg font-semibold text-espresso">Course Completed 🎉</p>
-              <p className="text-sm text-espresso/60 mt-1">You've finished every lesson in this course.</p>
+              <p className="text-sm text-espresso/60 mt-1">You&apos;ve finished every lesson in this course.</p>
             </div>
           ) : selectedLesson ? (
             <>

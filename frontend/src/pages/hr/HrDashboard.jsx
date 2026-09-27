@@ -16,7 +16,7 @@ const CARDS = [
 ];
 
 export default function HrDashboard() {
-  const query = useQuery({ queryKey: ['hr-dashboard'], queryFn: async () => (await getDashboard()).data });
+  const query = useQuery({ queryKey: ['hr-dashboard'], queryFn: async () => (await getDashboard()).data, refetchInterval: 30000, refetchIntervalInBackground: false });
 
   return (
     <HrLayout>

@@ -13,12 +13,13 @@ export default function LearningPathDetail() {
   const { id } = useParams(); const client = useQueryClient(); const [courseId, setCourseId] = useState(''); const [targetType, setTargetType] = useState('EMPLOYEE'); const [targetId, setTargetId] = useState(''); const [employeeIds, setEmployeeIds] = useState([]); const [dueDate, setDueDate] = useState(''); const [error, setError] = useState('');
   const pathQuery = useQuery({ queryKey: ['learning-path', id], queryFn: () => pathService.getPath(id) });
   const courseQuery = useQuery({ queryKey: ['courses', 'path-options'], queryFn: () => courseService.listCourses({ limit: 100, status: 'PUBLISHED' }) });
-  const employeesQuery = useQuery({ queryKey: ['employees'], queryFn: () => employeeService.listEmployees() });
+  const employeesQuery = useQuery({ queryKey: ['employees'], queryFn: () => employeeService.listEmployees({ limit: 100 }) });
   const progressQuery = useQuery({ queryKey: ['learning-path-progress', id], queryFn: () => pathService.listProgress(id, { limit: 50 }), enabled: Boolean(id) });
-  const path = pathQuery.data?.data || pathQuery.data; const courses = courseQuery.data?.data || []; const employees = employeesQuery.data || [];
+  const path = pathQuery.data; const courses = courseQuery.data?.data || [];
+  const employees = useMemo(() => employeesQuery.data?.data || [], [employeesQuery.data]);
   const departments = useMemo(() => [...new Map(employees.filter((e) => e.department).map((e) => [e.department.id, e.department])).values()], [employees]);
   const positions = useMemo(() => [...new Map(employees.filter((e) => e.position).map((e) => [e.position.id, e.position])).values()], [employees]);
-  function refresh() { client.invalidateQueries({ queryKey: ['learning-path', id] }); client.invalidateQueries({ queryKey: ['learning-path-progress', id] }); client.invalidateQueries({ queryKey: ['learning-paths'] }); }
+  function refresh() { client.invalidateQueries({ queryKey: ['learning-path', id] }); client.invalidateQueries({ queryKey: ['learning-path-progress', id] }); client.invalidateQueries({ queryKey: ['learning-paths'] }); client.invalidateQueries({ queryKey: ['my-learning-paths'] }); client.invalidateQueries({ queryKey: ['my-courses'] }); client.invalidateQueries({ queryKey: ['notifications'] }); }
   const add = useMutation({ mutationFn: () => pathService.addCourse(id, { courseId, required: true }), onSuccess: () => { setCourseId(''); refresh(); }, onError: (e) => setError(e.response?.data?.message || 'Unable to add course.') });
   const remove = useMutation({ mutationFn: (course) => pathService.removeCourse(id, course.id), onSuccess: refresh, onError: (e) => setError(e.response?.data?.message || 'Unable to remove course.') });
   const reorder = useMutation({ mutationFn: (courseIds) => pathService.reorderCourses(id, courseIds), onSuccess: refresh, onError: (e) => setError(e.response?.data?.message || 'Unable to reorder courses.') });

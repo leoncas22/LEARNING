@@ -57,11 +57,15 @@ async function issueSession(user) {
   return { accessToken, rawRefreshToken };
 }
 
-const invalidCredentials = () => new AppError('Invalid email or password', 401, 'INVALID_CREDENTIALS');
+const invalidCredentials = () => new AppError('Invalid username or password', 401, 'INVALID_CREDENTIALS');
 
-export async function login({ email, password }) {
+export async function login({ username, email, password }) {
+  // The current database uses the globally unique `email` column as its login
+  // identifier. Accept both API names so existing clients remain compatible,
+  // while the public login contract can use username/password terminology.
+  const loginIdentifier = username ?? email;
   const user = await prisma.user.findUnique({
-    where: { email },
+    where: { email: loginIdentifier },
     select: { ...SAFE_USER_SELECT, password: true, deletedAt: true },
   });
 

@@ -28,12 +28,12 @@ export function QuestionRenderer({ question, value, onChange }) {
   }
 
   if (question.type === 'MULTIPLE_ANSWER') {
-    function toggle(optionId) {
+    const toggle = (optionId) => {
       const next = selectedOptionIds.includes(optionId)
         ? selectedOptionIds.filter((id) => id !== optionId)
         : [...selectedOptionIds, optionId];
       onChange({ selectedOptionIds: next });
-    }
+    };
     return (
       <fieldset>
         <legend className="sr-only">{question.question}</legend>

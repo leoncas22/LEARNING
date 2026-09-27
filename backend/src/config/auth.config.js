@@ -31,7 +31,12 @@ export const authConfig = {
     secure: (process.env.COOKIE_SECURE || 'false') === 'true',
     sameSite: process.env.COOKIE_SAME_SITE || 'lax',
     httpOnly: true,
-    path: '/api/auth', // refresh cookie is only ever sent to auth endpoints
+    // Scoped to /api/auth/* — the refresh token is only ever sent to the
+    // endpoints that need it (refresh, logout) plus /api/auth/me, which the
+    // SPA calls on every app start to re-establish the in-memory access
+    // token. A cookie path matches on URL path segments, so '/api/auth'
+    // would NOT match '/api/auth/me' — it must be '/api'.
+    path: '/api',
   },
 };
 

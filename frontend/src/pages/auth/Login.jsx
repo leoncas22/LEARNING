@@ -8,7 +8,7 @@ export default function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -18,12 +18,12 @@ export default function Login() {
     setError('');
     setIsSubmitting(true);
     try {
-      const user = await login(email, password);
+      const user = await login(username, password);
       const redirectTo = location.state?.from?.pathname || homePathForRole(user.role);
       navigate(redirectTo, { replace: true });
     } catch (err) {
-      // Backend always returns a generic message here — never "email
-      // exists but password wrong" (account enumeration protection).
+      // Backend always returns a generic message here — never reveals
+      // whether the username exists (account enumeration protection).
       setError(err.response?.data?.message || 'Invalid email or password.');
     } finally {
       setIsSubmitting(false);
@@ -34,13 +34,13 @@ export default function Login() {
     <AuthLayout title="Welcome back" subtitle="Sign in to continue">
       {error && <AlertBanner>{error}</AlertBanner>}
       <form onSubmit={handleSubmit}>
-        <FormField label="Email">
+        <FormField label="Username">
           <TextInput
-            type="email"
-            autoComplete="email"
+            type="text"
+            autoComplete="username"
             required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
           />
         </FormField>
         <FormField label="Password">

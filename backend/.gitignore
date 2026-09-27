@@ -2,14 +2,9 @@ node_modules/
 .env
 .env.*
 !.env.example
-
 dist/
 build/
-
+*.zip
+npm-debug.log*
 coverage/
-
-.prisma/
-
-*.log
-
-.DS_Store
+.vscode/

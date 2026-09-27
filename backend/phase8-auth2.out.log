@@ -1,0 +1,2 @@
+LMS API listening on http://localhost:5000 [development]
+[0mPOST /api/auth/login [32m200[0m 127.189 ms - 882[0m

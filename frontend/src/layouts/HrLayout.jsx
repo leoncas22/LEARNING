@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { to: '/hr/courses', label: 'Courses' },
   { to: '/hr/quizzes', label: 'Quizzes' },
   { to: '/hr/trainings', label: 'Trainings' },
+  { to: '/hr/users', label: 'User Management' },
   { to: '/hr/learning-paths', label: 'Learning Paths' },
   { to: '/hr/certifications', label: 'Certifications' },
   { to: '/hr/certificates', label: 'Certificates' },

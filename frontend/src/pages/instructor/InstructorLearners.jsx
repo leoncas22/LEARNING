@@ -11,7 +11,7 @@ export default function InstructorLearners() {
   const coursesQuery = useQuery({ queryKey: ['instructor-courses'], queryFn: () => courseService.listCourses({ limit: 100 }) });
   const courses = coursesQuery.data?.data || [];
   const learnersQuery = useQuery({ queryKey: ['instructor-learners', courseId], queryFn: () => instructorService.listLearners(courseId, { limit: 50 }), enabled: Boolean(courseId) });
-  const learners = learnersQuery.data?.data?.data || [];
+  const learners = learnersQuery.data?.data || [];
   return <InstructorLayout>
     <h1 className="text-2xl font-semibold text-espresso">Learner Monitoring</h1>
     <p className="text-sm text-espresso/60 mt-1">Review progress for learners enrolled in your assigned courses.</p>

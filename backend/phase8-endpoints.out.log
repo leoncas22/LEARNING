@@ -1,0 +1,6 @@
+LMS API listening on http://localhost:5000 [development]
+[0mPOST /api/auth/login [32m200[0m 228.867 ms - 882[0m
+[0mGET /api/notifications [32m200[0m 41.542 ms - 138[0m
+[0mGET /api/notifications/unread-count [32m200[0m 11.399 ms - 41[0m
+[0mGET /api/announcements [32m200[0m 14.646 ms - 86[0m
+[0mGET /api/audit-logs [32m200[0m 10.467 ms - 10818[0m

@@ -1,0 +1,2 @@
+LMS API listening on http://localhost:5000 [development]
+[0mGET /api/health [32m200[0m 6.048 ms - 121[0m

@@ -14,7 +14,7 @@ const TYPES = [
 
 export function LessonForm({ initial, onSubmit, onCancel, submitLabel = 'Save' }) {
   const [title, setTitle] = useState(initial?.title || '');
-  const [description, setDescription] = useState(initial?.description || '');
+  const [description] = useState(initial?.description || '');
   const [type, setType] = useState(initial?.type || 'TEXT');
   const [content, setContent] = useState(initial?.content || '');
   const [videoUrl, setVideoUrl] = useState(initial?.videoUrl || '');

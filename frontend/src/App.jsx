@@ -24,6 +24,7 @@ import CreateCourse from './pages/hr/CreateCourse';
 import CourseDetail from './pages/hr/CourseDetail';
 import EditCourse from './pages/hr/EditCourse';
 import Trainings from './pages/hr/Trainings';
+import UserManagement from './pages/hr/UserManagement';
 
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import MyLearning from './pages/employee/MyLearning';
@@ -153,6 +154,7 @@ export default function App() {
           </ProtectedRoute>
         }
       />
+      <Route path="/hr/users" element={<ProtectedRoute allowedRoles={['COMPANY_ADMIN']}><UserManagement /></ProtectedRoute>} />
 
       {/* Phase 5 — Quiz & Assessment Engine (HR) */}
       <Route

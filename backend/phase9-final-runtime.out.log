@@ -1,0 +1,54 @@
+
+> lms-backend@1.0.0 start
+> node src/server.js
+
+LMS API listening on http://localhost:5000 [development]
+[0mGET /api/health [32m200[0m 6.529 ms - 122[0m
+[0mPOST /api/auth/login [32m200[0m 122.087 ms - 882[0m
+[0mGET /api/dashboard/hr [32m200[0m 83.059 ms - 197[0m
+[0mGET /api/reports/dashboard [32m200[0m 65.430 ms - 3829[0m
+[0mGET /api/reports/learning [32m200[0m 22.009 ms - 922[0m
+[0mGET /api/reports/quiz [32m200[0m 15.497 ms - 367[0m
+[0mGET /api/reports/certifications [32m200[0m 18.356 ms - 462[0m
+[0mGET /api/reports/competencies [32m200[0m 13.876 ms - 850[0m
+[0mGET /api/reports/departments [32m200[0m 13.582 ms - 1224[0m
+[0mGET /api/reports/trainings [32m200[0m 20.391 ms - 5813[0m
+[0mGET /api/notifications [32m200[0m 9.459 ms - 138[0m
+[0mGET /api/notifications/unread-count [32m200[0m 9.581 ms - 41[0m
+[0mGET /api/announcements [32m200[0m 8.813 ms - 86[0m
+[0mGET /api/audit-logs [32m200[0m 8.804 ms - 10170[0m
+[0mPOST /api/auth/login [32m200[0m 74.903 ms - 941[0m
+[0mGET /api/me/courses [32m200[0m 15.231 ms - 1021[0m
+[0mGET /api/me/learning-summary [32m200[0m 7.742 ms - 136[0m
+[0mGET /api/me/quizzes [32m200[0m 18.891 ms - 769[0m
+[0mGET /api/me/quiz-history [32m200[0m 4.604 ms - 61[0m
+[0mGET /api/me/certificates [32m200[0m 10.010 ms - 528[0m
+[0mGET /api/me/competencies [32m200[0m 4.811 ms - 77[0m
+[0mGET /api/notifications [32m200[0m 8.265 ms - 1510[0m
+[0mGET /api/notifications/unread-count [32m200[0m 4.499 ms - 41[0m
+[0mGET /api/announcements [32m200[0m 7.074 ms - 86[0m
+[0mPOST /api/auth/login [32m200[0m 78.032 ms - 871[0m
+[0mGET /api/instructor/dashboard [32m200[0m 9.858 ms - 964[0m
+[0mGET /api/courses?limit=20 [32m200[0m 5.971 ms - 1343[0m
+[0mGET /api/quizzes?page=1&limit=20 [32m200[0m 9.764 ms - 703[0m
+[0mGET /api/notifications [32m200[0m 3.565 ms - 138[0m
+[0mGET /api/announcements [32m200[0m 5.589 ms - 86[0m
+[0mPOST /api/auth/login [32m200[0m 118.212 ms - 941[0m
+[0mGET /api/audit-logs [33m403[0m 4.852 ms - 99[0m
+[0mPOST /api/announcements [33m403[0m 4.460 ms - 99[0m
+[0mGET /api/instructor/dashboard [33m401[0m 0.711 ms - 76[0m
+[0mGET /api/auth/me [33m401[0m 0.588 ms - 76[0m
+[0mGET /api/auth/me [33m401[0m 0.775 ms - 76[0m
+[0mPOST /api/auth/refresh [33m401[0m 0.557 ms - 75[0m
+[0mPOST /api/auth/login [32m200[0m 81.523 ms - 882[0m
+[0mGET /api/notifications?limit=8 [32m200[0m 71.764 ms - 137[0m
+[0mGET /api/notifications?limit=8 [36m304[0m 18.212 ms - -[0m
+[0mGET /api/reports/dashboard [32m200[0m 184.229 ms - 3829[0m
+[0mGET /api/auth/me [33m401[0m 1.234 ms - 76[0m
+[0mGET /api/auth/me [33m401[0m 0.339 ms - 76[0m
+[0mPOST /api/auth/refresh [32m200[0m 23.062 ms - 883[0m
+[0mGET /api/auth/me [32m200[0m 6.339 ms - 565[0m
+[0mGET /api/auth/me [36m304[0m 3.577 ms - -[0m
+[0mGET /api/notifications?limit=8 [36m304[0m 7.700 ms - -[0m
+[0mGET /api/courses?page=1&limit=12 [32m200[0m 17.082 ms - 2158[0m
+[0mGET /api/notifications?limit=8 [36m304[0m 7.904 ms - -[0m

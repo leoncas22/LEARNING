@@ -1,0 +1,5 @@
+LMS API listening on http://localhost:5000 [development]
+[0mGET /api/notifications [33m401[0m 5.768 ms - 76[0m
+[0mGET /api/announcements/not-a-uuid [33m401[0m 1.097 ms - 76[0m
+[0mGET /api/audit-logs?page=0 [33m401[0m 0.473 ms - 76[0m
+[0mGET /api/health [32m200[0m 0.504 ms - 121[0m

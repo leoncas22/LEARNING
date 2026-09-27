@@ -9,7 +9,7 @@ export default function QuizHistory() {
   return (
     <EmployeeLayout>
       <h1 className="text-2xl font-semibold text-espresso">Quiz History</h1>
-      <p className="text-sm text-espresso/60 mt-1">Every quiz attempt you've completed.</p>
+      <p className="text-sm text-espresso/60 mt-1">Every quiz attempt you&apos;ve completed.</p>
 
       <div className="mt-6">
         {query.isLoading && <LoadingState label="Loading history..." />}

@@ -7,7 +7,7 @@ export async function getDashboard() {
 
 export async function listLearners(courseId, params = {}) {
   const res = await apiClient.get(`/instructor/courses/${courseId}/learners`, { params });
-  return { data: res.data, pagination: res.data.pagination };
+  return { data: res.data?.data || [], pagination: res.data?.pagination };
 }
 
 export default { getDashboard, listLearners };

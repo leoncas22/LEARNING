@@ -8,22 +8,22 @@ export async function listAnnouncements(params = {}) {
 
 export async function createAnnouncement(input) {
   const res = await apiClient.post('/announcements', input);
-  return res.data;
+  return res.data?.data;
 }
 
 export async function updateAnnouncement(id, input) {
   const res = await apiClient.patch(`/announcements/${id}`, input);
-  return res.data;
+  return res.data?.data;
 }
 
 export async function publishAnnouncement(id) {
   const res = await apiClient.post(`/announcements/${id}/publish`);
-  return res.data;
+  return res.data?.data;
 }
 
 export async function archiveAnnouncement(id) {
   const res = await apiClient.post(`/announcements/${id}/archive`);
-  return res.data;
+  return res.data?.data;
 }
 
 export default { listAnnouncements, createAnnouncement, updateAnnouncement, publishAnnouncement, archiveAnnouncement };
