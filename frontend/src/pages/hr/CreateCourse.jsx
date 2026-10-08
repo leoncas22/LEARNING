@@ -40,10 +40,10 @@ export default function CreateCourse() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const instructorsQuery = useQuery({
-    queryKey: ['employees'],
-    queryFn: () => employeeService.listEmployees(),
+    queryKey: ['employees', { role: 'INSTRUCTOR', status: 'ACTIVE' }],
+    queryFn: () => employeeService.listEmployees({ role: 'INSTRUCTOR', status: 'ACTIVE', limit: 100 }),
   });
-  const instructors = (instructorsQuery.data || []).filter((e) => e.role?.name === 'INSTRUCTOR');
+  const instructors = instructorsQuery.data?.data || [];
 
   function update(field) {
     return (e) => setForm((prev) => ({ ...prev, [field]: e.target.value }));
@@ -122,18 +122,26 @@ export default function CreateCourse() {
               <TextInput type="number" min="1" value={form.duration} onChange={update('duration')} />
             </Field>
             <Field label="Instructor" error={fieldErrors.instructorId}>
-              <select required value={form.instructorId} onChange={update('instructorId')} className={inputClass}>
-                <option value="">Select instructor</option>
-                {instructors.map((i) => (
-                  <option key={i.id} value={i.id}>
-                    {i.name}
-                  </option>
-                ))}
-              </select>
-              {instructorsQuery.isSuccess && instructors.length === 0 && (
-                <p className="mt-1.5 text-xs text-espresso/50">
-                  No instructors yet — add an employee with the Instructor role first.
-                </p>
+              {instructorsQuery.isLoading ? (
+                <p className="text-sm text-espresso/50">Loading active instructors...</p>
+              ) : instructorsQuery.isError ? (
+                <p className="text-sm text-burgundy" role="alert">Unable to load instructors. Please try again.</p>
+              ) : (
+                <>
+                  <select required value={form.instructorId} onChange={update('instructorId')} className={inputClass}>
+                    <option value="">Select instructor</option>
+                    {instructors.map((i) => (
+                      <option key={i.id} value={i.id}>
+                        {i.name}
+                      </option>
+                    ))}
+                  </select>
+                  {instructors.length === 0 && (
+                    <p className="mt-1.5 text-xs text-espresso/50">
+                      No active instructors yet — add one in User Management first.
+                    </p>
+                  )}
+                </>
               )}
             </Field>
           </div>

@@ -28,7 +28,7 @@ export default function UserManagement() {
   function resetForm() { setForm(emptyForm); setEditing(null); setError(''); }
   const save = useMutation({
     mutationFn: () => editing ? employeeService.updateEmployee(editing.id, { ...form, password: form.password || undefined, departmentId: form.departmentId || null, positionId: form.positionId || null, employeeNumber: form.employeeNumber || null }) : employeeService.createEmployee({ ...form, departmentId: form.departmentId || undefined, positionId: form.positionId || undefined, employeeNumber: form.employeeNumber || undefined }),
-    onSuccess: () => { resetForm(); client.invalidateQueries({ queryKey: ['managed-users'] }); },
+    onSuccess: () => { resetForm(); client.invalidateQueries({ queryKey: ['managed-users'] }); client.invalidateQueries({ queryKey: ['managed-user-options'] }); },
     onError: (err) => setError(err.response?.data?.message || 'Unable to save user.'),
   });
   const statusMutation = useMutation({ mutationFn: ({ id, nextStatus }) => employeeService.updateEmployeeStatus(id, nextStatus), onSuccess: () => client.invalidateQueries({ queryKey: ['managed-users'] }), onError: (err) => setError(err.response?.data?.message || 'Unable to update account status.') });

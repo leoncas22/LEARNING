@@ -25,6 +25,7 @@ import CourseDetail from './pages/hr/CourseDetail';
 import EditCourse from './pages/hr/EditCourse';
 import Trainings from './pages/hr/Trainings';
 import UserManagement from './pages/hr/UserManagement';
+import Departments from './pages/hr/Departments';
 
 import EmployeeDashboard from './pages/employee/EmployeeDashboard';
 import MyLearning from './pages/employee/MyLearning';
@@ -155,6 +156,7 @@ export default function App() {
         }
       />
       <Route path="/hr/users" element={<ProtectedRoute allowedRoles={['COMPANY_ADMIN']}><UserManagement /></ProtectedRoute>} />
+      <Route path="/hr/departments" element={<ProtectedRoute allowedRoles={['COMPANY_ADMIN']}><Departments /></ProtectedRoute>} />
 
       {/* Quiz and assessment management (HR) */}
       <Route

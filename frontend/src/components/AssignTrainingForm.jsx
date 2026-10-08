@@ -19,7 +19,10 @@ export function AssignTrainingForm({ onSubmit, onCancel }) {
     queryKey: ['courses', { status: 'PUBLISHED', forAssignment: true }],
     queryFn: () => courseService.listCourses({ status: 'PUBLISHED', limit: 100 }),
   });
-  const employeesQuery = useQuery({ queryKey: ['employees'], queryFn: () => employeeService.listEmployees() });
+  const employeesQuery = useQuery({
+    queryKey: ['employees', { role: 'EMPLOYEE', status: 'ACTIVE' }],
+    queryFn: () => employeeService.listEmployees({ role: 'EMPLOYEE', status: 'ACTIVE', limit: 100 }),
+  });
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -61,7 +64,9 @@ export function AssignTrainingForm({ onSubmit, onCancel }) {
 
       <div>
         <label className="block text-sm font-medium text-espresso mb-1.5">Course</label>
-        <select required value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputClass}>
+        {coursesQuery.isLoading && <p className="text-sm text-espresso/50">Loading published courses...</p>}
+        {coursesQuery.isError && <p className="text-sm text-burgundy" role="alert">Unable to load published courses. Please try again.</p>}
+        <select required value={courseId} onChange={(e) => setCourseId(e.target.value)} className={inputClass} disabled={!coursesQuery.isSuccess}>
           <option value="">Select a published course</option>
           {(coursesQuery.data?.data || []).map((c) => (
             <option key={c.id} value={c.id}>
@@ -76,8 +81,11 @@ export function AssignTrainingForm({ onSubmit, onCancel }) {
 
       <div>
         <label className="block text-sm font-medium text-espresso mb-1.5">Employees</label>
-        {employeesQuery.isSuccess && (
-          <EmployeePicker employees={employeesQuery.data} selectedIds={employeeIds} onChange={setEmployeeIds} />
+        {employeesQuery.isLoading && <p className="text-sm text-espresso/50">Loading active employees...</p>}
+        {employeesQuery.isError && <p className="text-sm text-burgundy" role="alert">Unable to load employees. Please try again.</p>}
+        {employeesQuery.isSuccess && (employeesQuery.data?.data || []).length === 0 && <p className="text-sm text-espresso/50">No active employees yet — create one in User Management first.</p>}
+        {employeesQuery.isSuccess && (employeesQuery.data?.data || []).length > 0 && (
+          <EmployeePicker employees={employeesQuery.data?.data || []} selectedIds={employeeIds} onChange={setEmployeeIds} />
         )}
       </div>
 

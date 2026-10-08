@@ -2,6 +2,7 @@ import { Router } from 'express';
 import healthRoutes from './health.routes.js';
 import authRoutes from './auth.routes.js';
 import employeeRoutes from './employee.routes.js';
+import departmentRoutes from './department.routes.js';
 import courseRoutes from './course.routes.js';
 import moduleRoutes from './module.routes.js';
 import lessonRoutes from './lesson.routes.js';
@@ -27,6 +28,7 @@ const router = Router();
 router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 router.use('/employees', employeeRoutes);
+router.use('/departments', departmentRoutes);
 
 // Learning management routes
 router.use('/courses', courseRoutes);
