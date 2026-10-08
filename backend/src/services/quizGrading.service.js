@@ -10,7 +10,7 @@ import { matchesAcceptedAnswer } from '../utils/normalizeAnswer.js';
  *   SHORT_ANSWER                 : { answerText: string }
  *
  * Returns { isCorrect, pointsEarned }. For ESSAY (reserved, not exposed in
- * the Phase 5 UI) both are null — "not yet gradable automatically" rather
+ * the quiz builder UI) both are null — "not yet gradable automatically" rather
  * than "wrong".
  */
 export function gradeQuestion(question, submission) {

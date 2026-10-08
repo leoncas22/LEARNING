@@ -16,7 +16,7 @@ export const env = {
   appUrl: process.env.APP_URL || 'http://localhost:5000',
   clientUrl: process.env.CLIENT_URL || 'http://localhost:5173',
 
-  // Required starting Phase 2. Not hard-enforced here (no throw) so the
+  // Required for database access. Not hard-enforced here (no throw) so the
   // process still boots with a clear Prisma connection error rather than a
   // silent crash before any logs are printed.
   databaseUrl: process.env.DATABASE_URL,

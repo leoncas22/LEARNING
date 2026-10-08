@@ -28,7 +28,7 @@ router.use('/health', healthRoutes);
 router.use('/auth', authRoutes);
 router.use('/employees', employeeRoutes);
 
-// Phase 4
+// Learning management routes
 router.use('/courses', courseRoutes);
 router.use('/modules', moduleRoutes);
 router.use('/lessons', lessonRoutes);
@@ -39,12 +39,12 @@ router.use('/instructor', instructorRoutes);
 router.use('/learning-paths', learningPathRoutes);
 router.use('/uploads', uploadRoutes);
 
-// Phase 5
+// Quiz and assessment routes
 router.use('/quizzes', quizRoutes);
 router.use('/questions', quizQuestionRoutes);
 router.use('/quiz-attempts', quizAttemptRoutes);
 
-// Phase 6 — Certification & Competency Management
+// Certification and competency routes
 router.use('/certifications', certificationRoutes);
 router.use('/certificates', certificateRoutes);
 router.use('/competencies', competencyRoutes);

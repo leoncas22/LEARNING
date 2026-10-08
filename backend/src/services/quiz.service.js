@@ -33,7 +33,7 @@ function roleScopedWhere(actingUser) {
 /**
  * Loads a quiz + its parent course and checks tenant/instructor ownership
  * — the one gate every quiz/question write path goes through, mirroring
- * loadCourseForWrite from Phase 4's module.service.js.
+ * loadCourseForWrite from module.service.js.
  */
 export async function loadQuizForWrite(actingUser, quizId) {
   const quiz = await prisma.quiz.findUnique({ where: { id: quizId }, include: { course: true } });
@@ -164,7 +164,7 @@ export async function updateQuiz(actingUser, quizId, input) {
  * Publish checklist from spec Module 10: title, description, >=1 question,
  * every question validly configured, points > 0, valid passing score /
  * attempt limit. All problems are collected and returned together, same
- * pattern as course.service.js::getPublishReadiness in Phase 4.
+ * pattern as course.service.js::getPublishReadiness.
  */
 export async function getPublishReadiness(actingUser, quizId) {
   await loadQuizForWrite(actingUser, quizId);
@@ -228,7 +228,7 @@ export async function archiveQuiz(actingUser, quizId) {
 
   // Not a hard delete — ARCHIVED blocks new attempts; existing
   // QuizAttempt/QuizAnswer history is left completely intact (Restrict
-  // FKs from Phase 2 already guarantee this at the DB level).
+  // Foreign keys already guarantee this at the database level).
   const updated = await prisma.quiz.update({ where: { id: quizId }, data: { status: 'ARCHIVED' }, select: QUIZ_LIST_SELECT });
 
   await logActivity(prisma, {

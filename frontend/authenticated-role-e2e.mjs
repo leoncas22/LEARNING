@@ -106,16 +106,16 @@ export default async function run(page, ui) {
 
   await login(page, ui, accounts.COMPANY_ADMIN);
   await page.goto(`${BASE}/hr/announcements`); await page.waitForTimeout(600);
-  const title = `Phase 12 E2E ${Date.now()}`;
+  const title = `Authenticated workflow ${Date.now()}`;
   const form = page.locator('form').first();
   await form.locator('input').first().fill(title);
-  await form.locator('textarea').first().fill('Authenticated Phase 12 database notification verification.');
+  await form.locator('textarea').first().fill('Authenticated database notification verification.');
   await form.getByRole('button', { name: /Save draft/i }).click();
   await page.waitForTimeout(600);
   const article = page.locator('article').filter({ hasText: title }).first();
   const publishAnnouncement = article.getByRole('button', { name: 'Publish', exact: true });
   if (await publishAnnouncement.count()) { await publishAnnouncement.click(); await page.waitForTimeout(800); }
-  result.live.announcement = { title, published: /Phase 12 E2E/.test(await body(page)) };
+  result.live.announcement = { title, published: /Authenticated workflow/.test(await body(page)) };
   await logout(page);
 
   await login(page, ui, accounts.EMPLOYEE);

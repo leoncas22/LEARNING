@@ -1,27 +1,23 @@
-# Phase 4 — LMS Core & Learning Management
+# LMS Core & Learning Management
 
 ## 1. Inspection performed before coding
 
-Confirmed from Phase 1–3, and reused rather than duplicated:
+Existing platform capabilities were reused rather than duplicated:
 - `Course`, `Module`, `Lesson`, `Enrollment`, `LessonProgress`, `Notification`
   (with `TRAINING_ASSIGNED` already in its enum), `ActivityLog` all already
-  existed in `schema.prisma` from Phase 2 — **zero new models created**.
+  existed in `schema.prisma` from the initial schema — **zero new models created**.
 - `authenticate` / `authorize` / `companyAccess` middleware, the Prisma
   client singleton (`config/db.js`), the Zod `validate` middleware, the
   standard `{success, message, data}` response shape, and the
   `AppError`/`asyncHandler` error-handling pattern — all reused as-is.
 - Frontend: `AuthContext`, `useAuth`, `ProtectedRoute`, `apiClient` (with its
   token-refresh interceptor), and the warm cream/gold/burgundy design
-  tokens introduced in Phase 3 for the auth pages. Phase 4 extends that
-  same palette to the full HR/Employee UI, per this phase's explicit
-  design-system instruction — so what looked like an open question in
-  Phase 3 ("is this auth-only or the whole app?") is now resolved: it's the
-  whole app.
+  tokens introduced in the authentication implementation for the auth pages. The same design system now supports the full HR and employee experience.
 
 **The only schema change needed**: `Enrollment.dueDate` didn't exist yet
-(Phase 2's spec didn't ask for it). Added via a proper migration
+(the initial schema's spec didn't ask for it). Added via a proper migration
 (`20260826103924_add_enrollment_due_date`), hand-verified against the live
-database exactly as Phase 2 and 3 were.
+database exactly as the initial schema and 3 were.
 
 ## 2. Architecture
 
@@ -30,7 +26,7 @@ Standard tree: `Course → Module[] → Lesson[]`, each `@@unique`-ordered
 within its parent. A course starts `DRAFT`, can only become `PUBLISHED`
 once it passes the readiness checklist (§4), and moves to `ARCHIVED`
 without ever being hard-deleted (existing enrollment/progress history is
-untouched — this was already the delete-behavior design from Phase 2).
+untouched — this was already the delete-behavior design from the initial schema).
 
 ### Enrollment / Progress
 `progress.service.js` is the single source of truth for course-progress
@@ -145,7 +141,7 @@ All list endpoints (`/courses`, `/trainings`, `/me/courses`) accept
 `{ data, pagination: { page, limit, total, totalPages } }` —
 `utils/pagination.js` is the one place this shape is built.
 
-## 8. Permission matrix (Phase 4 additions)
+## 8. Permission matrix (the LMS core implementation additions)
 
 | Action | SUPER_ADMIN | COMPANY_ADMIN | INSTRUCTOR | EMPLOYEE |
 |---|---|---|---|---|
@@ -160,7 +156,7 @@ All list endpoints (`/courses`, `/trainings`, `/me/courses`) accept
 ## 9. Testing performed
 
 Prisma's CLI still can't reach `binaries.prisma.sh` from this sandbox (see
-Phase 2/3's notes) — correctness was verified the same three-layer way:
+the initial schema/3's notes) — correctness was verified the same three-layer way:
 
 **A. 11 live HTTP tests** against a booted `app.js`/routes/middleware stack
 (real code, mocked only at the generated-Prisma-Client layer): role
@@ -185,7 +181,7 @@ backed by a real unique-constraint test, progress recalculation at 50%
 (assigned vs. unassigned instructor, same company), cascade-delete of an
 empty module's lessons, and — critically — a lesson **with** learner
 progress being **blocked** from deletion (the `Lesson -> LessonProgress`
-`Restrict` rule from Phase 2, now exercised by a real write path for the
+`Restrict` rule from the initial schema, now exercised by a real write path for the
 first time).
 
 **C. Frontend build** — `npm run build` succeeds with 0 errors (174
@@ -201,22 +197,22 @@ All verification data and scripts were deleted before packaging.
   files) and careful code review — not by clicking through it. Please spot
   check the actual flows (create, build, publish, assign, learn, complete)
   once you have it running locally.
-- **No dedicated Instructor UI.** The Phase 4 spec's explicit page list
+- **No dedicated Instructor UI.** The the LMS core implementation spec's explicit page list
   only defines HR and Employee screens; Instructor permissions are fully
   enforced at the API level (an Instructor really can list/edit only their
   assigned courses), but there's no `/instructor/*` page consuming that
-  yet — it still shows the Phase 3 placeholder dashboard.
+  yet — it still shows the the authentication implementation placeholder dashboard.
 - **Reorder is "set the whole new order," not drag-and-drop.** The API
   (`POST .../reorder` with a full ordered-id array) supports drag-and-drop
   UI, but no such UI was built — Edit/Delete on modules and lessons exist;
   visual reordering is a natural follow-up.
-- Everything already listed as deferred from Phase 1–3 (real email
+- Everything already listed as deferred from earlier platform work (real email
   delivery, S3-class storage, CSRF token, account lockout) remains
   deferred, unchanged.
 
 ## 11. Environment variables
 
 No new environment variables — `STORAGE_DRIVER=local` and
-`LOCAL_UPLOAD_DIR=uploads` (both already in `.env.example` since Phase 1)
+`LOCAL_UPLOAD_DIR=uploads` (both already in `.env.example` since the initial setup)
 now do real work: uploaded lesson files land there and are served at
 `/uploads/<file>`.

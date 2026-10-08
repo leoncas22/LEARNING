@@ -62,7 +62,7 @@ export function HrLayout({ children }) {
 
       <div className="flex-1 min-w-0">
         {/* Mobile top bar — sidebar collapses to nothing below md; a full
-            drawer is a natural next iteration but out of Phase 4 scope. */}
+            drawer is a natural next iteration. */}
         <header className="md:hidden flex items-center justify-between px-4 py-3 bg-white border-b border-border-warm">
           <span className="font-semibold text-espresso">HR / LMS</span>
           <button type="button" onClick={logout} className="text-sm text-espresso/60">

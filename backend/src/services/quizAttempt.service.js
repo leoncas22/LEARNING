@@ -349,13 +349,13 @@ export async function submitAttempt(actingUser, attemptId) {
     },
   });
 
-  // Phase 6 — If passed, recalculate competencies and check certificate eligibility
+  // Recalculate competencies and check certificate eligibility after a passing attempt
   if (passed) {
     try {
       await recalculateEmployeeCompetenciesForCourse(actingUser.id, quiz.courseId);
       await checkAndIssueCourseCertificates(actingUser.id, quiz.courseId);
     } catch (hookErr) {
-      console.error('[PHASE6_QUIZ_HOOK_ERROR] Failed during quiz pass hook:', hookErr);
+      console.error('[CERTIFICATION_QUIZ_HOOK_ERROR] Failed during quiz pass hook:', hookErr);
     }
   }
 

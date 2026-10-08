@@ -110,10 +110,10 @@ export async function updateQuestion(actingUser, questionId, input) {
 export async function deleteQuestion(actingUser, questionId) {
   const question = await loadQuestionForWrite(actingUser, questionId);
 
-  // Question -> QuizAnswer is Restrict (schema.prisma, Phase 2): a
+  // Question -> QuizAnswer is Restrict (schema.prisma): a
   // question that already has learner answers on record cannot be
   // deleted — archive the quiz instead. This throws a clear FK error if
-  // that's attempted, exactly like Lesson -> LessonProgress in Phase 4.
+  // that's attempted, following the same restriction as Lesson -> LessonProgress.
   await prisma.question.delete({ where: { id: questionId } });
 
   await logActivity(prisma, {
@@ -129,7 +129,7 @@ export async function deleteQuestion(actingUser, questionId) {
 /**
  * Reorders questions using the caller-supplied { id, order } list directly
  * (spec's documented shape for this endpoint), rather than an ordered-id
- * array like Phase 4's module/lesson reorder — validated the same way:
+ * array like the module and lesson reorder operations — validated the same way:
  * every id must belong to this quiz, and the update runs as a two-pass
  * transaction to avoid tripping the (quizId, order) unique constraint.
  */

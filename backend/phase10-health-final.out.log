@@ -1,6 +1,0 @@
-
-> lms-backend@1.0.0 start
-> node src/server.js
-
-LMS API listening on http://localhost:5000 [development]
-[0mGET /api/health [32m200[0m 7.383 ms - 121[0m

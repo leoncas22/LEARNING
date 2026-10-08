@@ -22,7 +22,7 @@ router.get('/', (req, res) => {
 /**
  * GET /api/health/db
  * Readiness check - confirms the API can actually reach PostgreSQL through
- * Prisma. Added in Phase 2 now that the schema/migration exist.
+ * Prisma. Added once the schema and migration were introduced.
  */
 router.get(
   '/db',

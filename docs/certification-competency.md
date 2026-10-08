@@ -1,6 +1,6 @@
-# Phase 6 — Certification & Competency Management
+# Certification & Competency Management
 ## 1. Architecture
-Phase 6 extends the existing Express + Prisma + PostgreSQL LMS. It reuses the authenticated `User`, tenant `Company`, `Course`, `Enrollment`, `LessonProgress`, `Quiz`, and `QuizAttempt` models. The backend is authoritative for eligibility, certificate issuance, expiration, and competency calculation.
+This capability extends the existing Express + Prisma + PostgreSQL LMS. It reuses the authenticated `User`, tenant `Company`, `Course`, `Enrollment`, `LessonProgress`, `Quiz`, and `QuizAttempt` models. The backend is authoritative for eligibility, certificate issuance, expiration, and competency calculation.
 
 ```mermaid
 flowchart TD
@@ -28,7 +28,7 @@ J --> L[Public Verification]
 - `EmployeeCompetency`: server-calculated per-user achievement, unique by user and competency.
 - Notification enum values include certificate issued, expiring, expired, and revoked events.
 
-The migration is `20260915040000_phase_6_certification_competency`. Prisma validation and client generation succeed.
+The certification and competency data model is represented by the existing Prisma migration history. Prisma validation and client generation succeed.
 
 ## 3. Eligibility logic
 `checkCertificationEligibility` verifies:
@@ -42,7 +42,7 @@ The migration is `20260915040000_phase_6_certification_competency`. Prisma valid
 The frontend never calculates eligibility.
 
 ## 4. Certificate issuance flow
-Course completion and quiz grading invoke the Phase 6 hooks without replacing Phase 4 progress or Phase 5 grading. Issuance runs in a Prisma transaction: eligibility check, secure identifier generation, certificate creation, activity log, and notification. Database unique constraints plus transactional logic protect certificate number and verification code uniqueness. Expired historical certificates are not overwritten; renewal creates a new record.
+Course completion and quiz grading invoke the certification hooks without replacing learning progress or assessment grading. Issuance runs in a Prisma transaction: eligibility check, secure identifier generation, certificate creation, activity log, and notification. Database unique constraints plus transactional logic protect certificate number and verification code uniqueness. Expired historical certificates are not overwritten; renewal creates a new record.
 
 Certificate numbers use the `CERT-YYYY-######` format. Verification codes use cryptographically secure random bytes and do not encode internal IDs, user IDs, company IDs, email addresses, or timestamps.
 
@@ -98,4 +98,4 @@ The implementation covers active/expired/revoked/unknown verification, duplicate
 - Prisma schema validation: passed.
 - Prisma client generation: passed.
 - Frontend production build: passed (`vite build`).
-- Node syntax checks for Phase 6 certification and certificate services: passed.
+- Node syntax checks for certification and certificate services: passed.

@@ -1,5 +1,5 @@
 // ============================================================================
-// LMS Platform — Prisma Schema (Phase 2)
+// LMS Platform — Prisma Schema
 // PostgreSQL + Prisma ORM, multi-tenant (tenant key = companyId)
 //
 // Delete-behavior conventions used throughout this schema (see docs/database.md
@@ -70,7 +70,7 @@ model Company {
   learningPaths LearningPath[]
   activityLogs  ActivityLog[]
   announcements Announcement[]
-  // Phase 6
+  // Certification and competency relations
   certifications Certification[]
   certificates   Certificate[]  @relation("CompanyCertificates")
   competencies   Competency[]   @relation("CompanyCompetencies")
@@ -159,7 +159,7 @@ model User {
   position   Position? @relation(fields: [positionId], references: [id], onDelete: SetNull)
 
   name  String
-  /// Global unique: login (Phase 3) authenticates by email alone, before any
+  /// Global unique: login (email-based authentication) authenticates by email alone, before any
   /// tenant is known, and a person account belongs to exactly one company.
   email String @unique
 
@@ -172,7 +172,7 @@ model User {
   status      UserStatus @default(ACTIVE)
   lastLoginAt DateTime?
 
-  /// Set once the user confirms their email (Phase 3). Null = unverified.
+  /// Set once the user confirms their email (email-based authentication). Null = unverified.
   emailVerifiedAt DateTime?
 
   /// Soft delete — see schema header. Users with any activity are never
@@ -195,7 +195,7 @@ model User {
   learningPathAssignments LearningPathAssignment[]
   lessonProgress LessonProgress[]
   quizAttempts   QuizAttempt[]
-  // Phase 6 — Certificate (replaces Phase 2 stub; relation name matches Certificate.user)
+  // Certification and competency relations — relation name matches Certificate.user
   certificates         Certificate[]
   employeeCompetencies EmployeeCompetency[]
 
@@ -264,7 +264,7 @@ model Course {
   quizzes              Quiz[]
   assignments          Assignment[]
   learningPathCourses  LearningPathCourse[]
-  // Phase 6
+  // Certification and competency relations
   certifications       Certification[]     @relation("CertificationCourse")
   courseCompetencies   CourseCompetency[]  @relation("CourseCompetencies")
 
@@ -323,7 +323,7 @@ model Lesson {
   /// history must survive content edits. Archive/unpublish the course
   /// instead of deleting lessons that already have progress.
   lessonProgress LessonProgress[]
-  /// Quizzes attached to this lesson (Phase 5). A quiz may instead be
+  /// Quizzes attached to this lesson (quiz implementation). A quiz may instead be
   /// attached at the course level only — see Quiz.lessonId.
   quizzes        Quiz[]
 
@@ -353,7 +353,7 @@ model Enrollment {
 
   status      EnrollmentStatus @default(ASSIGNED)
   enrolledAt  DateTime         @default(now())
-  /// Training deadline, set by whoever assigns the course (Phase 4). OVERDUE
+  /// Training deadline, set by whoever assigns the course (learning management implementation). OVERDUE
   /// is derived (dueDate < now() && status != COMPLETED), not stored.
   dueDate     DateTime?
   completedAt DateTime?
@@ -441,7 +441,7 @@ model Quiz {
 
   questions Question[]
   attempts  QuizAttempt[]
-  // Phase 6
+  // Certification and competency relations
   certificationRequirements CertificationRequirement[] @relation("CertificationQuiz")
 
   @@index([courseId])
@@ -455,7 +455,7 @@ enum QuestionType {
   MULTIPLE_ANSWER
   TRUE_FALSE
   ESSAY
-  /// Auto-graded free-text answer (Phase 5), matched against
+  /// Auto-graded free-text answer (quiz implementation), matched against
   /// Question.acceptedAnswers after normalization. Distinct from ESSAY,
   /// which remains reserved for future manual grading.
   SHORT_ANSWER
@@ -470,7 +470,7 @@ model Question {
   type     QuestionType
   /// Points awarded for a fully correct answer; used for auto-grading on
   /// MULTIPLE_CHOICE / MULTIPLE_ANSWER / TRUE_FALSE / SHORT_ANSWER. ESSAY
-  /// is reserved for future manual grading (not exposed in Phase 5 UI).
+  /// is reserved for future manual grading (not exposed in quiz implementation UI).
   points   Int          @default(1)
   order    Int
 
@@ -512,15 +512,15 @@ model QuestionOption {
 
 enum QuizAttemptStatus {
   IN_PROGRESS
-  /// Learner submitted; grading is complete or in progress. Added Phase 5.
+  /// Learner submitted; grading is complete or in progress. Added quiz implementation.
   SUBMITTED
   /// Terminal: grading finished (pass/fail is in the `passed` field).
-  /// Added Phase 5.
+  /// Added quiz implementation.
   GRADED
   /// Deadline passed before submission; answers saved so far were graded
-  /// as-is and no further changes are accepted. Added Phase 5.
+  /// as-is and no further changes are accepted. Added quiz implementation.
   EXPIRED
-  /// Retained in the enum for the rows that predate Phase 5 (Postgres
+  /// Retained in the enum for the rows that predate quiz implementation (Postgres
   /// can't drop enum values in place) but no longer written by the
   /// application — pass/fail now lives in QuizAttempt.passed instead,
   /// decoupled from the process-state enum.
@@ -601,7 +601,7 @@ model QuizAnswer {
 /// Junction table so a single QuizAnswer can record multiple selected
 /// options — required for MULTIPLE_ANSWER questions, which a single
 /// isCorrect/optionId pair on QuizAnswer could not represent. Added for
-/// data-integrity reasons only (see rule #19 in the Phase 2 brief).
+/// data-integrity reasons only (see rule #19 in the schema design brief).
 model QuizAnswerOption {
   id String @id @default(uuid())
 
@@ -741,7 +741,7 @@ model LearningPathAssignment {
 }
 
 // ============================================================================
-// CERTIFICATION & COMPETENCY (Phase 6)
+// CERTIFICATION & COMPETENCY
 // ============================================================================
 
 // ── Certification ─────────────────────────────────────────────────────────
@@ -910,7 +910,7 @@ model CompetencyLevelConfig {
 
 /// Declares that completing a Course contributes to a Competency.
 /// `targetLevel` is the level the employee can achieve. `weight` allows
-/// future multi-source score blending (Phase 6 uses 1.0 as default).
+/// future multi-source score blending (certification implementation uses 1.0 as default).
 model CourseCompetency {
   id           String     @id @default(uuid())
   courseId     String
@@ -946,7 +946,7 @@ model EmployeeCompetency {
   /// Numeric score 0–100 that determined the level.
   score       Int
   achievedAt  DateTime @default(now())
-  /// Where the score came from: COURSE or QUIZ (Phase 6), MANUAL (future).
+  /// Where the score came from: COURSE or QUIZ (certification implementation), MANUAL (future).
   source      String   @default("COURSE")
   /// FK to the course or quiz that produced this score (informational).
   sourceId    String?
@@ -971,7 +971,7 @@ enum NotificationType {
   COURSE_COMPLETED
   QUIZ_RESULT
   CERTIFICATE_ISSUED
-  // Phase 6 — Certification & Competency Management
+  // Certification and competency relations — Certification & Competency Management
   CERTIFICATE_EXPIRING
   CERTIFICATE_EXPIRED
   CERTIFICATE_REVOKED
@@ -1033,7 +1033,7 @@ model Announcement {
 // ============================================================================
 
 // ============================================================================
-// AUTHENTICATION (Phase 3)
+// AUTHENTICATION
 // ============================================================================
 
 /// One row per issued refresh token. Only a hash is stored — the raw token

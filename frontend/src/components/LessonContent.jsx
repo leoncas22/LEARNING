@@ -7,7 +7,7 @@ export function LessonContent({ lesson }) {
         <div
           className="prose prose-sm max-w-none text-espresso"
           // Safe: this HTML was sanitized server-side (sanitizeHtml.js) before
-          // ever being stored — see docs/phase-4.md §Security. Never render
+          // ever being stored — see the LMS core documentation's Security section. Never render
           // unsanitized user HTML this way.
           dangerouslySetInnerHTML={{ __html: lesson.content || '' }}
         />

@@ -19,7 +19,7 @@ router.get('/:attemptId/result', attemptController.getAttemptResult);
 
 // Staff review of a specific attempt (spec Module 36's "HR Attempt
 // Detail"). Deviates from the spec's literal single GET .../result path
-// (documented in docs/phase-5.md) to keep the employee's own gated result
+// (documented in the quiz and assessment guide) to keep the employee's own gated result
 // and staff's always-full detail as two distinct, independently
 // authorized handlers rather than one branching on role.
 router.get('/:attemptId/staff-detail', authorize('COMPANY_ADMIN', 'INSTRUCTOR'), resultsController.getAttemptDetail);

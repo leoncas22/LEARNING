@@ -1,5 +1,5 @@
 import { asyncHandler } from '../middleware/errorHandler.js';
-import * as reportingService from '../services/reportingPhase7.service.js';
+import * as reportingService from '../services/reporting.service.js';
 
 function csvValue(value) {
   const text = value === null || value === undefined ? '' : String(value);

@@ -45,7 +45,7 @@ router.post(
 
 // Employee-facing: start (or resume) an attempt. No role restriction here
 // — access is governed entirely by enrollment + quiz.status, checked
-// inside quizAttempt.service.js, exactly like lesson completion in Phase 4.
+// inside quizAttempt.service.js, following the lesson-completion workflow.
 router.post('/:quizId/attempts', attemptController.startAttempt);
 
 export default router;

@@ -8,7 +8,7 @@ async function login(page, ui, account) {
 }
 async function api(page, path, token, options = {}) { return page.evaluate(async ({ path, token, options }) => { const r = await fetch(path, { ...options, headers: { ...(options.headers || {}), Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } }); return { status: r.status, payload: await r.json().catch(() => ({})) }; }, { path, token, options }); }
 export default async function run(page, ui) {
-  const result = { failures: {} }; const title = `Phase 12 E2E Announcement ${Date.now()}`;
+  const result = { failures: {} }; const title = `Notification workflow announcement ${Date.now()}`;
   const a = await login(page, ui, admin); result.adminLogin = a.status; const at = a.payload.data.accessToken;
   await page.goto(`${BASE}/hr/announcements`); await page.waitForTimeout(700); const form = page.locator('form').first();
   await form.locator('input').first().fill(title); await form.locator('textarea').first().fill('Database-backed notification verification.');

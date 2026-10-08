@@ -1,9 +1,8 @@
 import { useAuth } from '../hooks/useAuth';
 
 /**
- * Intentionally minimal — Phase 3 is authentication/authorization only.
- * Real dashboards (HR, Employee, Instructor, Admin) are later phases. This
- * exists so role-based redirect and route protection are demonstrably
+ * Intentionally minimal fallback for routes without a dedicated dashboard.
+ * Role-based redirects and route protection are handled by the application.
  * working end to end.
  */
 export default function DashboardPlaceholder({ title }) {

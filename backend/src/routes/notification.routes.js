@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/authenticate.js';
 import * as controller from '../controllers/notification.controller.js';
 import { validate } from '../middleware/validate.js';
-import { listNotificationsSchema, notificationIdSchema } from '../validators/phase8.validation.js';
+import { listNotificationsSchema, notificationIdSchema } from '../validators/activity.validation.js';
 
 const router = Router();
 router.use(authenticate);

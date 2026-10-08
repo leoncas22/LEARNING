@@ -11,13 +11,13 @@ const STATUS_STYLES = {
   OVERDUE: 'bg-burgundy/10 text-burgundy',
   ACTIVE: 'bg-emerald-50 text-emerald-700',
   INACTIVE: 'bg-slate-100 text-slate-500',
-  // Phase 5 — quiz attempt / result statuses
+  // Quiz attempt and result statuses
   PASSED: 'bg-emerald-50 text-emerald-700',
   FAILED: 'bg-burgundy/10 text-burgundy',
   GRADED: 'bg-emerald-50 text-emerald-700',
   SUBMITTED: 'bg-blue-50 text-blue-700',
   EXPIRED: 'bg-burgundy/10 text-burgundy',
-  // Phase 6 — certification & competency statuses
+  // Certification and competency statuses
   REVOKED: 'bg-burgundy/15 text-burgundy font-semibold',
   BEGINNER: 'bg-slate-100 text-slate-700',
   INTERMEDIATE: 'bg-blue-50 text-blue-700',

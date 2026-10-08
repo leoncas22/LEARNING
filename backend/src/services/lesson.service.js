@@ -229,12 +229,12 @@ export async function completeLesson(actingUser, lessonId) {
       entityId: course.id,
     });
 
-    // Phase 6 — Automatic Competency calculation & Certificate issuance
+    // Automatic competency calculation and certificate issuance
     try {
       await recalculateEmployeeCompetenciesForCourse(actingUser.id, course.id);
       await checkAndIssueCourseCertificates(actingUser.id, course.id);
     } catch (hookErr) {
-      console.error('[PHASE6_HOOK_ERROR] Failed during course completion hook:', hookErr);
+      console.error('[CERTIFICATION_HOOK_ERROR] Failed during course completion hook:', hookErr);
     }
   }
 

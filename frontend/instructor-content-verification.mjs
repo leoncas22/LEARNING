@@ -33,9 +33,9 @@ export default async function run(page, ui) {
   if (href) {
     await page.goto(`http://127.0.0.1:5174${href}`); await page.waitForTimeout(700);
     result.instructor.before = (await page.locator('body').innerText()).slice(0, 1600);
-    result.instructor.text = await addLesson(page, 'TEXT', 'Phase 11 Verified Text', '<p>Verified article content.</p>');
-    result.instructor.video = await addLesson(page, 'VIDEO', 'Phase 11 Verified Video', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
-    result.instructor.link = await addLesson(page, 'LINK', 'Phase 11 Verified Link', 'https://www.example.com/learning');
+    result.instructor.text = await addLesson(page, 'TEXT', 'Verified Text Lesson', '<p>Verified article content.</p>');
+    result.instructor.video = await addLesson(page, 'VIDEO', 'Verified Video Lesson', 'https://www.youtube.com/watch?v=dQw4w9WgXcQ');
+    result.instructor.link = await addLesson(page, 'LINK', 'Verified External Resource', 'https://www.example.com/learning');
     result.instructor.afterCreate = (await page.locator('body').innerText()).slice(0, 2200);
     await page.reload(); await page.waitForTimeout(700); result.instructor.afterRefresh = (await page.locator('body').innerText()).slice(0, 2200);
   }

@@ -2,8 +2,7 @@
  * The access token lives only in memory (a module-level variable), not in
  * localStorage or a cookie. It's lost on a full page reload by design —
  * AuthContext re-establishes it by calling /api/auth/me (which rides the
- * HttpOnly refresh cookie) on app start. This is what Phase 3 spec §30
- * calls for: "Access Token → memory/state, Refresh Token → HttpOnly Secure
+ * HttpOnly refresh cookie) on app start. This follows the application's authentication security model: "Access Token → memory/state, Refresh Token → HttpOnly Secure
  * Cookie".
  */
 let accessToken = null;

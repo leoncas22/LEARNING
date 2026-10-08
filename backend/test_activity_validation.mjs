@@ -8,7 +8,7 @@ import {
   listNotificationsSchema,
   notificationIdSchema,
   updateAnnouncementSchema,
-} from './src/validators/phase8.validation.js';
+} from './src/validators/activity.validation.js';
 
 let passed = 0;
 let total = 0;
@@ -53,4 +53,4 @@ rejects(listAuditLogsSchema, { query: { createdAfter: '2026-02-01', createdBefor
 rejects(listAuditLogsSchema, { query: { limit: '101' } }, 'audit limit is bounded');
 
 assert.equal(typeof z.object, 'function');
-console.log(`\nPhase 8 validation checks passed: ${passed}/${total}`);
+console.log(`\nActivity validation checks passed: ${passed}/${total}`);

@@ -33,7 +33,7 @@ router.post('/:id/archive', authorize('COMPANY_ADMIN', 'INSTRUCTOR'), courseCont
 router.post('/:courseId/modules', validate(createModuleSchema), moduleController.createModule);
 router.post('/:courseId/modules/reorder', validate(reorderModulesSchema), moduleController.reorderModules);
 
-// Phase 6 — Course Competencies
+// Course competency routes
 router.get('/:courseId/competencies', courseCompetencyController.listCourseCompetencies);
 router.post('/:courseId/competencies', validate(assignCourseCompetencySchema), courseCompetencyController.addCourseCompetency);
 router.delete('/:courseId/competencies/:competencyId', courseCompetencyController.removeCourseCompetency);

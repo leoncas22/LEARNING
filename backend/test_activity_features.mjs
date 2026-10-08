@@ -30,7 +30,7 @@ async function main() {
   const hrB = { id: adminB.id, role: 'COMPANY_ADMIN', companyId: companyB.id };
   const employee = { id: employeeA.id, role: 'EMPLOYEE', companyId: companyA.id, departmentId: employeeA.departmentId };
   const otherEmployee = { id: employeeOtherDepartment.id, role: 'EMPLOYEE', companyId: companyA.id, departmentId: employeeOtherDepartment.departmentId };
-  const marker = `Phase 8 test ${Date.now()}`;
+  const marker = `Activity feature test ${Date.now()}`;
   const createdIds = [];
 
   try {
@@ -78,11 +78,11 @@ async function main() {
     check(logs.data.some((row) => row.entityId === companyAnnouncement.id), 'announcement creation is present in the audit log');
     check(publishedLogs.data.some((row) => row.entityId === companyAnnouncement.id), 'announcement publication is present in the audit log');
     check(archivedLogs.data.some((row) => row.entityId === companyAnnouncement.id), 'announcement archival is present in the audit log');
-    check([...logs.data, ...publishedLogs.data, ...archivedLogs.data].every((row) => !JSON.stringify(row.metadata || {}).match(/password|token|secret|hash/i)), 'Phase 8 audit metadata contains no credential material');
+    check([...logs.data, ...publishedLogs.data, ...archivedLogs.data].every((row) => !JSON.stringify(row.metadata || {}).match(/password|token|secret|hash/i)), 'Audit metadata contains no credential material');
     check((await activityLogService.list(hrB, { action: 'ANNOUNCEMENT_CREATED' })).data.every((row) => row.companyId === companyB.id), 'audit logs are tenant-isolated');
     check((await activityLogService.list(hr, { createdAfter: new Date(Date.now() - 60000), createdBefore: new Date(Date.now() + 60000), limit: 100 })).pagination.total >= logs.pagination.total, 'audit date filters and pagination work');
 
-    console.log(`\nPhase 8 service checks passed: ${passed}/${total}`);
+    console.log(`\nActivity service checks passed: ${passed}/${total}`);
   } finally {
     if (createdIds.length) {
       const notificationWhere = { title: { startsWith: marker } };
@@ -95,4 +95,4 @@ async function main() {
   }
 }
 
-main().catch((error) => { console.error('Phase 8 test run failed:', error); process.exitCode = 1; }).finally(() => prisma.$disconnect());
+main().catch((error) => { console.error('Activity feature test run failed:', error); process.exitCode = 1; }).finally(() => prisma.$disconnect());

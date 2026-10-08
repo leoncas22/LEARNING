@@ -40,7 +40,7 @@ import QuizTakingPage from './pages/employee/QuizTakingPage';
 import QuizResultPage from './pages/employee/QuizResultPage';
 import QuizHistory from './pages/employee/QuizHistory';
 
-// Phase 6 — Certification & Competency Management
+// Certification and competency management
 import Certifications from './pages/hr/Certifications';
 import CreateCertification from './pages/hr/CreateCertification';
 import CertificationDetail from './pages/hr/CertificationDetail';
@@ -81,10 +81,10 @@ export default function App() {
       <Route path="/reset-password" element={<ResetPassword />} />
       <Route path="/verify-email" element={<VerifyEmail />} />
 
-      {/* Public certificate verification (Phase 6) */}
+      {/* Public certificate verification */}
       <Route path="/verify/:verificationCode" element={<CertificateVerification />} />
 
-      {/* Super Admin — platform-level UI is a later phase */}
+      {/* Super Admin — platform-level UI is a future enhancement */}
       <Route
         path="/admin"
         element={
@@ -94,7 +94,7 @@ export default function App() {
         }
       />
 
-      {/* Phase 9 — Instructor workspace */}
+      {/* Instructor workspace */}
       <Route path="/instructor" element={<ProtectedRoute allowedRoles={['INSTRUCTOR']}><InstructorDashboard /></ProtectedRoute>} />
       <Route path="/instructor/courses" element={<ProtectedRoute allowedRoles={['INSTRUCTOR']}><InstructorCourses /></ProtectedRoute>} />
       <Route path="/instructor/courses/:id" element={<ProtectedRoute allowedRoles={['INSTRUCTOR']}><InstructorCourseDetail /></ProtectedRoute>} />
@@ -105,7 +105,7 @@ export default function App() {
       <Route path="/instructor/quizzes/:id" element={<ProtectedRoute allowedRoles={['INSTRUCTOR']}><InstructorQuizDetail /></ProtectedRoute>} />
       <Route path="/instructor/quizzes/:quizId/results" element={<ProtectedRoute allowedRoles={['INSTRUCTOR']}><InstructorQuizResults /></ProtectedRoute>} />
 
-      {/* HR / Company Admin — Phase 4 LMS management */}
+      {/* HR and company administration */}
       <Route
         path="/hr"
         element={
@@ -156,7 +156,7 @@ export default function App() {
       />
       <Route path="/hr/users" element={<ProtectedRoute allowedRoles={['COMPANY_ADMIN']}><UserManagement /></ProtectedRoute>} />
 
-      {/* Phase 5 — Quiz & Assessment Engine (HR) */}
+      {/* Quiz and assessment management (HR) */}
       <Route
         path="/hr/quizzes"
         element={
@@ -190,7 +190,7 @@ export default function App() {
         }
       />
 
-      {/* Employee — Phase 4 learning experience */}
+      {/* Employee learning experience */}
       <Route
         path="/employee"
         element={
@@ -216,7 +216,7 @@ export default function App() {
         }
       />
 
-      {/* Phase 5 — Quiz & Assessment Engine (Employee) */}
+      {/* Quiz and assessment experience (Employee) */}
       <Route
         path="/employee/quizzes"
         element={
@@ -250,7 +250,7 @@ export default function App() {
         }
       />
 
-      {/* Phase 6 — Certification & Competency Management (HR) */}
+      {/* Certification and competency management (HR) */}
       <Route
         path="/hr/certifications"
         element={
@@ -316,7 +316,7 @@ export default function App() {
         }
       />
 
-      {/* Phase 6 — Certification & Competency Management (Employee) */}
+      {/* Certification and competency experience (Employee) */}
       <Route
         path="/employee/certificates"
         element={

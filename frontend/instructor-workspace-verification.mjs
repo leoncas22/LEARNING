@@ -33,9 +33,9 @@ export default async function run(page, ui) {
   await page.goto(`http://127.0.0.1:5174${courseHref}`);
   await page.waitForTimeout(700);
   const before = (await page.locator('body').innerText()).slice(0, 2200);
-  await createLesson(page, 'TEXT', 'Phase 11 Text Article', '<p>Read this rich learning article.</p>');
-  await createLesson(page, 'VIDEO', 'Phase 11 Video Resource', 'https://example.com/training.mp4');
-  await createLesson(page, 'LINK', 'Phase 11 External Resource', 'https://www.example.com/learning');
+  await createLesson(page, 'TEXT', 'Verified Text Article', '<p>Read this rich learning article.</p>');
+  await createLesson(page, 'VIDEO', 'Verified Video Resource', 'https://example.com/training.mp4');
+  await createLesson(page, 'LINK', 'Verified External Resource', 'https://www.example.com/learning');
   const afterCreate = (await page.locator('body').innerText()).slice(0, 3000);
   await page.reload();
   await page.waitForTimeout(650);

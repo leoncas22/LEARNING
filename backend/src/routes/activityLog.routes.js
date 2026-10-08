@@ -3,7 +3,7 @@ import { authenticate } from '../middleware/authenticate.js';
 import { authorize } from '../middleware/authorize.js';
 import * as controller from '../controllers/activityLog.controller.js';
 import { validate } from '../middleware/validate.js';
-import { listAuditLogsSchema } from '../validators/phase8.validation.js';
+import { listAuditLogsSchema } from '../validators/activity.validation.js';
 const router = Router();
 router.use(authenticate, authorize('COMPANY_ADMIN'));
 router.get('/', validate(listAuditLogsSchema), controller.list);

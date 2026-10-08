@@ -21,7 +21,7 @@ function assert(condition, message) {
 }
 
 async function runTests() {
-  console.log('=== STARTING PHASE 6 COMPREHENSIVE VERIFICATION ===\n');
+  console.log('=== STARTING CERTIFICATION AND COMPETENCY VERIFICATION ===\n');
 
   // 1. Fetch seed users and companies
   const companyA = await prisma.company.findFirst({ where: { slug: 'pt-nusantara-teknologi' } });

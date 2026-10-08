@@ -19,11 +19,11 @@ router.get('/learning-summary', learningController.getMyLearningSummary);
 router.get('/learning-paths', learningPathController.myPaths);
 router.get('/learning-paths/:id', learningPathController.myPath);
 
-// Phase 5
+// Quiz and assessment self-service routes
 router.get('/quizzes', attemptController.listMyQuizzes);
 router.get('/quiz-history', attemptController.getMyQuizHistory);
 
-// Phase 6 — Certificates & Competencies (Employee Self-Service)
+// Certificate and competency self-service routes
 router.get('/certificates', certificateController.listMyCertificates);
 router.get('/certificates/:id', certificateController.getCertificate);
 router.get('/competencies', competencyController.getMyCompetencies);

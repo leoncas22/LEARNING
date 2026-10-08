@@ -13,11 +13,8 @@ export default {
         warning: '#F59E0B',
         danger: '#DC2626',
 
-        // Auth-specific palette (Phase 3 spec, §34): warm cream / gold /
-        // dark brown / burgundy. Scoped to auth pages only — the rest of
-        // the app (dashboards etc., not yet built) still uses the blue
-        // tokens above from Phase 1. Kept as separate tokens rather than
-        // replacing `primary` so neither design system clobbers the other.
+        // Auth-specific warm cream, gold, dark brown, and burgundy palette.
+        // Kept as separate tokens from the primary application palette.
         cream: '#F5F1E8',
         gold: '#B8935A',
         espresso: '#1E1B16',

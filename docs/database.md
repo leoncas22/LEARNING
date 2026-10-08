@@ -1,4 +1,4 @@
-# Database Architecture — Phase 2
+# Database Architecture
 
 ## 1. Overview
 
@@ -15,7 +15,7 @@ Platform
   └── Company C → ...
 ```
 
-**Rule: `companyId` is never trusted from the frontend.** In Phase 3, every
+**Rule: `companyId` is never trusted from the frontend.** Every
 authenticated request resolves `companyId` from the decoded JWT
 (`req.user.companyId`), and every tenant-scoped Prisma query filters by it
 server-side. A `SUPER_ADMIN` account has `companyId = NULL` and is the only
@@ -28,7 +28,7 @@ duplicating `companyId` on every child table would violate normalization
 without adding real query value, since access always starts from the
 tenant-scoped parent.
 
-Verified directly against a live PostgreSQL instance during this phase:
+Verified directly against a live PostgreSQL instance:
 `SELECT * FROM users WHERE "companyId" = 'A'` never returns a Company B row,
 even though both companies have overlapping data shapes (same department
 names, same `employeeNumber` sequence `EMP-001..EMP-010`).
@@ -62,8 +62,8 @@ integers are enforced two ways:
    `courses.passingScore`, `quizzes.passingScore`, `quiz_attempts.score`,
    `lesson_progress.progressPercentage`, `certificates.score`,
    `questions.points`, `assignment_submissions.score`.
-2. **Application-layer validation** (Zod, Phase 3+) as the first line of
-   defense — the DB constraint is the backstop, not the primary UX.
+2. **Application-layer validation** (Zod) as the first line of defense —
+the DB constraint is the backstop, not the primary UX.
 
 Verified directly: inserting `progressPercentage = 101` or `-1` is rejected
 by Postgres with a `CHECK constraint` violation.
@@ -168,7 +168,7 @@ npx prisma studio         # browse data
 
 ## 9. Seed data
 
-`backend/prisma/seed.js` creates, per the Phase 2 spec minimums: 1 Super
+`backend/prisma/seed.js` creates, per the seed data minimums: 1 Super
 Admin, 2 Companies, each with 1 Company Admin, 2 Instructors, 10 Employees,
 5 Departments, 5 Positions, 5 Courses (3 Modules × 3 Lessons each), 2
 published Quizzes (5 Questions × 4 Options each) with a graded attempt, 1
@@ -186,7 +186,7 @@ npm run db:seed
 npm run db:reset
 ```
 
-## 10. Testing performed (this phase, against a live database)
+## 10. Testing performed against a live database
 
 | # | Test | Result |
 |---|---|---|

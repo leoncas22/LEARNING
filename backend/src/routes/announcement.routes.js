@@ -2,7 +2,7 @@ import { Router } from 'express';
 import { authenticate } from '../middleware/authenticate.js';
 import { authorize } from '../middleware/authorize.js';
 import { validate } from '../middleware/validate.js';
-import { announcementIdSchema, createAnnouncementSchema, listAnnouncementsSchema, updateAnnouncementSchema } from '../validators/phase8.validation.js';
+import { announcementIdSchema, createAnnouncementSchema, listAnnouncementsSchema, updateAnnouncementSchema } from '../validators/activity.validation.js';
 import * as controller from '../controllers/announcement.controller.js';
 const router = Router();
 router.use(authenticate);

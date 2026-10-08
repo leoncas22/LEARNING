@@ -13,7 +13,7 @@ export default async function run(page, ui) {
   await page.goto(`http://127.0.0.1:5174${courseHref}`); await page.waitForTimeout(800);
   result.before = (await page.locator('body').innerText()).slice(0, 2400);
   result.contentTypes = await page.locator('aside button').evaluateAll((bs) => bs.map((b) => b.innerText));
-  const textButton = page.locator('aside button').filter({ hasText: 'Phase 11 Verified Text' }).first();
+  const textButton = page.locator('aside button').filter({ hasText: 'Verified Text Lesson' }).first();
   result.textLessonPresent = await textButton.count() > 0;
   if (result.textLessonPresent) { await textButton.click(); await page.waitForTimeout(250); }
   result.selectedText = (await page.locator('body').innerText()).slice(-900);

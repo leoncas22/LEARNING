@@ -35,7 +35,7 @@ app.use(cookieParser());
 app.use(morgan(env.isProduction ? 'combined' : 'dev'));
 
 // Basic global rate limiter. Tighter, endpoint-specific limits (e.g. login)
-// are added when auth is implemented in Phase 3.
+// are added by the authentication middleware.
 app.use(
   rateLimit({
     windowMs: env.rateLimit.windowMs,

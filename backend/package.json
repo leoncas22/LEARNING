@@ -17,8 +17,8 @@
     "db:studio": "prisma studio",
     "db:restore-admin": "node prisma/restore-dev-admin.js",
     "db:reset": "prisma migrate reset",
-    "test:phase8:validation": "node test_phase8_validation.mjs",
-    "test:phase8": "node test_phase8.mjs"
+    "test:activity:validation": "node test_activity_validation.mjs",
+    "test:activity": "node test_activity_features.mjs"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

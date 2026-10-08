@@ -1,4 +1,4 @@
-# Authentication & Authorization — Phase 3
+# Authentication & Authorization
 
 ## 1. Overview
 
@@ -150,7 +150,7 @@ Authentication errors are deliberately generic:
 
 ## 11. Auth activity log
 
-Reuses the existing `ActivityLog` table from Phase 2 (no new table needed)
+Reuses the existing `ActivityLog` table (no new table needed)
 with `entity = 'AUTH'` and actions: `LOGIN_SUCCESS`, `LOGIN_FAILED`,
 `LOGOUT`, `PASSWORD_RESET_REQUESTED`, `PASSWORD_RESET_COMPLETED`,
 `EMAIL_VERIFIED`, `REFRESH_TOKEN_REVOKED`, `REGISTER_COMPANY`. Never logs a
@@ -182,7 +182,7 @@ password or raw token — only metadata like `{ reason: 'invalid_password' }`.
   intentionally forcing a mid-transaction failure and confirming rollback
   (see §15).
 
-## 14. Environment variables (new in Phase 3)
+## 14. Environment variables
 
 ```env
 JWT_ACCESS_SECRET=          # signs the access token (real JWT)
@@ -194,14 +194,12 @@ COOKIE_SECURE=false         # true in production (HTTPS only)
 COOKIE_SAME_SITE=lax
 ```
 
-`CLIENT_URL` (set in Phase 1) doubles as the `FRONTEND_URL` referenced in
-the Phase 3 spec — used for both CORS and building reset/verify links.
+`CLIENT_URL` doubles as the `FRONTEND_URL` used by the application — used for both CORS and building reset/verify links.
 
-## 15. Testing performed (this phase)
+## 15. Testing performed
 
 Prisma's CLI (`generate`/`migrate`/`studio`) can't reach
-`binaries.prisma.sh` from this sandbox (see Phase 2's note in the main
-README) — so, as in Phase 2, correctness was verified through three
+`binaries.prisma.sh` from this sandbox (see the note in the main README) — correctness was verified through three
 independent, real channels rather than skipped:
 
 **A. Pure unit tests (no DB) — 12/12 passed**
@@ -249,6 +247,5 @@ database and the repo before packaging — nothing sandbox-only ships.
   the architecture — one-time hashed tokens — already exists via
   `EmailVerificationToken` and is ready to reuse for invitations).
 - Dedicated CSRF token (see §9 for why it isn't needed yet).
-- Persistent account lockout (rate limiting is the current defense; a
-  lockout mechanism is a Phase 4+ candidate per the spec's own caution
+- Persistent account lockout (rate limiting is the current defense; a lockout mechanism remains a future security enhancement per the spec's own caution
   against making it attacker-abusable).
