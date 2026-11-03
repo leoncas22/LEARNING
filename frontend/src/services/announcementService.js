@@ -11,6 +11,11 @@ export async function createAnnouncement(input) {
   return res.data?.data;
 }
 
+export async function getAnnouncement(id) {
+  const res = await apiClient.get(`/announcements/${id}`);
+  return res.data?.data;
+}
+
 export async function updateAnnouncement(id, input) {
   const res = await apiClient.patch(`/announcements/${id}`, input);
   return res.data?.data;
@@ -26,4 +31,4 @@ export async function archiveAnnouncement(id) {
   return res.data?.data;
 }
 
-export default { listAnnouncements, createAnnouncement, updateAnnouncement, publishAnnouncement, archiveAnnouncement };
+export default { listAnnouncements, getAnnouncement, createAnnouncement, updateAnnouncement, publishAnnouncement, archiveAnnouncement };

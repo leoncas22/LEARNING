@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import HrLayout from '../../layouts/HrLayout';
-import { listCompetencies, archiveCompetency } from '../../services/competencyService';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import HrLayout from "../../layouts/HrLayout";
+import {
+  listCompetencies,
+  archiveCompetency,
+} from "../../services/competencyService";
 import {
   StatusBadge,
   SearchInput,
@@ -11,20 +14,26 @@ import {
   EmptyState,
   ErrorState,
   useConfirm,
-} from '../../components/ui/Primitives';
+} from "../../components/ui/Primitives";
 
 const STATUS_OPTIONS = [
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'ARCHIVED', label: 'Archived' },
+  { value: "ACTIVE", label: "Active" },
+  { value: "ARCHIVED", label: "Archived" },
 ];
 
 export default function Competencies() {
   const [competencies, setCompetencies] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+  });
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const { confirm, dialog } = useConfirm();
 
@@ -41,7 +50,7 @@ export default function Competencies() {
       setCompetencies(res.data);
       setPagination(res.pagination);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load competencies');
+      setError(err.response?.data?.message || "Failed to load competencies");
     } finally {
       setIsLoading(false);
     }
@@ -56,18 +65,23 @@ export default function Competencies() {
 
   async function handleArchive(comp) {
     const confirmed = await confirm({
-      title: 'Archive Competency',
+      title: "Archive Competency",
       description: `Are you sure you want to archive "${comp.name}"?`,
-      confirmLabel: 'Archive',
+      confirmLabel: "Archive",
       danger: true,
     });
-    if (!confirmed) return;
-
+    if (!confirmed || busy) return;
+    setBusy(true);
+    setError(null);
+    setNotice("");
     try {
       await archiveCompetency(comp.id);
-      loadCompetencies(pagination.page);
+      setNotice("Competency archived.");
+      await loadCompetencies(pagination.page);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to archive competency');
+      setError(err.response?.data?.message || "Failed to archive competency.");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -75,12 +89,18 @@ export default function Competencies() {
     <HrLayout>
       {dialog}
       <div className="space-y-6">
+        {notice && (
+          <p className="text-sm text-emerald-700" role="status">
+            {notice}
+          </p>
+        )}
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-espresso">Competencies</h1>
             <p className="text-sm text-espresso/60 mt-1">
-              Define enterprise skills, set proficiency standards, and track employee growth
+              Define enterprise skills, set proficiency standards, and track
+              employee growth
             </p>
           </div>
           <Link
@@ -112,11 +132,18 @@ export default function Competencies() {
         {isLoading ? (
           <LoadingState label="Loading competencies..." />
         ) : error ? (
-          <ErrorState message={error} onRetry={() => loadCompetencies(pagination.page)} />
+          <ErrorState
+            message={error}
+            onRetry={() => loadCompetencies(pagination.page)}
+          />
         ) : competencies.length === 0 ? (
           <EmptyState
             title="No competencies defined"
-            description={search || statusFilter ? 'Try clearing filters' : 'Create competencies to link learning outcomes with measurable skills.'}
+            description={
+              search || statusFilter
+                ? "Try clearing filters"
+                : "Create competencies to link learning outcomes with measurable skills."
+            }
             action={
               !search && !statusFilter ? (
                 <Link
@@ -137,9 +164,13 @@ export default function Competencies() {
                     <th className="px-6 py-3 font-semibold">Competency</th>
                     <th className="px-6 py-3 font-semibold">Category</th>
                     <th className="px-6 py-3 font-semibold">Linked Courses</th>
-                    <th className="px-6 py-3 font-semibold">Employees Achieved</th>
+                    <th className="px-6 py-3 font-semibold">
+                      Employees Achieved
+                    </th>
                     <th className="px-6 py-3 font-semibold">Status</th>
-                    <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                    <th className="px-6 py-3 font-semibold text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-warm/60">
@@ -153,7 +184,9 @@ export default function Competencies() {
                           {comp.name}
                         </Link>
                         {comp.description && (
-                          <p className="text-xs text-espresso/50 truncate max-w-xs">{comp.description}</p>
+                          <p className="text-xs text-espresso/50 truncate max-w-xs">
+                            {comp.description}
+                          </p>
                         )}
                       </td>
                       <td className="px-6 py-4 text-xs font-medium text-espresso/70">
@@ -162,7 +195,9 @@ export default function Competencies() {
                             {comp.category}
                           </span>
                         ) : (
-                          <span className="text-espresso/40">Uncategorized</span>
+                          <span className="text-espresso/40">
+                            Uncategorized
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 font-medium text-espresso">
@@ -181,10 +216,11 @@ export default function Competencies() {
                         >
                           View
                         </Link>
-                        {comp.status !== 'ARCHIVED' && (
+                        {comp.status !== "ARCHIVED" && (
                           <button
                             type="button"
                             onClick={() => handleArchive(comp)}
+                            disabled={busy}
                             className="text-xs font-medium text-espresso/50 hover:text-burgundy px-2.5 py-1.5 rounded-lg hover:bg-burgundy/10 transition"
                           >
                             Archive
@@ -209,4 +245,3 @@ export default function Competencies() {
     </HrLayout>
   );
 }
-

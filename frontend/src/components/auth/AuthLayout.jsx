@@ -1,3 +1,5 @@
+import { cloneElement } from "react";
+
 /**
  * Shared visual shell for /login, /register-company, /forgot-password,
  * /reset-password, /verify-email. Deliberately plain — per spec §35,
@@ -27,9 +29,11 @@ export function AuthLayout({ title, subtitle, children }) {
 export function FormField({ label, error, children }) {
   return (
     <div className="mb-5">
-      <label className="block text-sm font-medium text-espresso mb-1.5">{label}</label>
-      {children}
-      {error && <p className="mt-1.5 text-sm text-burgundy">{error}</p>}
+      {children?.props?.id ? <label htmlFor={children.props.id} className="block text-sm font-medium text-espresso mb-1.5">{label}</label> : <span className="block text-sm font-medium text-espresso mb-1.5">{label}</span>}
+      {children && error && children.props.id
+        ? cloneElement(children, { "aria-invalid": true, "aria-describedby": `${children.props.id}-error` })
+        : children}
+      {error && <p id={children?.props?.id ? `${children.props.id}-error` : undefined} className="mt-1.5 text-sm text-burgundy" role="alert">{error}</p>}
     </div>
   );
 }

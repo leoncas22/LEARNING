@@ -1,35 +1,46 @@
-import { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import * as authService from '../../services/authService';
-import { AuthLayout, FormField, TextInput, PrimaryButton, AlertBanner } from '../../components/auth/AuthLayout';
+import { useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import * as authService from "../../services/authService";
+import {
+  AuthLayout,
+  FormField,
+  TextInput,
+  PrimaryButton,
+  AlertBanner,
+} from "../../components/auth/AuthLayout";
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const token = searchParams.get('token') || '';
+  const token = searchParams.get("token") || "";
 
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [done, setDone] = useState(false);
 
   async function handleSubmit(e) {
     e.preventDefault();
-    setError('');
+    if (isSubmitting) return;
+    setError("");
     setFieldErrors({});
+    if (password !== confirmPassword) {
+      setFieldErrors({ confirmPassword: "Passwords do not match" });
+      return;
+    }
     setIsSubmitting(true);
     try {
       await authService.resetPassword(token, password, confirmPassword);
       setDone(true);
-      setTimeout(() => navigate('/login', { replace: true }), 2000);
+      window.setTimeout(() => navigate("/login", { replace: true }), 2000);
     } catch (err) {
       const data = err.response?.data;
-      if (data?.error === 'VALIDATION_ERROR' && data.details) {
+      if (data?.error === "VALIDATION_ERROR" && data.details) {
         setFieldErrors(data.details);
       } else {
-        setError(data?.message || 'This link is invalid or has expired.');
+        setError(data?.message || "This link is invalid or has expired.");
       }
     } finally {
       setIsSubmitting(false);
@@ -39,10 +50,14 @@ export default function ResetPassword() {
   if (!token) {
     return (
       <AuthLayout title="Invalid link">
-        <AlertBanner>This password reset link is missing its token.</AlertBanner>
-        <Link to="/forgot-password" className="block text-center text-sm text-gold hover:underline">
-          Request a new link
-        </Link>
+        <AlertBanner>
+          This password reset link is missing its token.
+        </AlertBanner>
+        <Link
+          to="/forgot-password"
+          className="block text-center text-sm text-gold hover:underline"
+        >
+          Request a new link         </Link>
       </AuthLayout>
     );
   }
@@ -51,7 +66,8 @@ export default function ResetPassword() {
     return (
       <AuthLayout title="Password updated">
         <AlertBanner variant="info">
-          Your password has been reset. All previous sessions were signed out. Redirecting to sign in...
+          Your password has been reset. All previous sessions were signed out.
+          Redirecting to sign in...
         </AlertBanner>
       </AuthLayout>
     );
@@ -66,21 +82,27 @@ export default function ResetPassword() {
             type="password"
             autoComplete="new-password"
             required
+            minLength={8}
+            pattern="(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9]).{8,}"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
         </FormField>
-        <FormField label="Confirm new password" error={fieldErrors.confirmPassword}>
+        <FormField
+          label="Confirm new password"
+          error={fieldErrors.confirmPassword}
+        >
           <TextInput
             type="password"
             autoComplete="new-password"
             required
+            minLength={8}
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
         </FormField>
         <PrimaryButton type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Updating...' : 'Update password'}
+          {isSubmitting ? "Updating..." : "Update password"}
         </PrimaryButton>
       </form>
     </AuthLayout>

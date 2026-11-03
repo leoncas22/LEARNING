@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import HrLayout from '../../layouts/HrLayout';
-import { listCertifications, archiveCertification } from '../../services/certificationService';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import HrLayout from "../../layouts/HrLayout";
+import {
+  listCertifications,
+  archiveCertification,
+} from "../../services/certificationService";
 import {
   StatusBadge,
   SearchInput,
@@ -11,21 +14,27 @@ import {
   EmptyState,
   ErrorState,
   useConfirm,
-} from '../../components/ui/Primitives';
+} from "../../components/ui/Primitives";
 
 const STATUS_OPTIONS = [
-  { value: 'DRAFT', label: 'Draft' },
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'ARCHIVED', label: 'Archived' },
+  { value: "DRAFT", label: "Draft" },
+  { value: "ACTIVE", label: "Active" },
+  { value: "ARCHIVED", label: "Archived" },
 ];
 
 export default function Certifications() {
   const [certifications, setCertifications] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+  });
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState(false);
 
   const { confirm, dialog } = useConfirm();
 
@@ -42,7 +51,7 @@ export default function Certifications() {
       setCertifications(res.data);
       setPagination(res.pagination);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load certifications');
+      setError(err.response?.data?.message || "Failed to load certifications");
     } finally {
       setIsLoading(false);
     }
@@ -57,19 +66,26 @@ export default function Certifications() {
 
   async function handleArchive(cert) {
     const confirmed = await confirm({
-      title: 'Archive Certification',
+      title: "Archive Certification",
       description: `Are you sure you want to archive "${cert.title}"? No new certificates will be automatically issued.`,
-      confirmLabel: 'Archive',
+      confirmLabel: "Archive",
       danger: true,
     });
 
-    if (!confirmed) return;
-
+    if (!confirmed || busy) return;
+    setBusy(true);
+    setError(null);
+    setNotice("");
     try {
       await archiveCertification(cert.id);
-      loadCertifications(pagination.page);
+      setNotice("Certification archived.");
+      await loadCertifications(pagination.page);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to archive certification');
+      setError(
+        err.response?.data?.message || "Failed to archive certification.",
+      );
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -77,12 +93,18 @@ export default function Certifications() {
     <HrLayout>
       {dialog}
       <div className="space-y-6">
+        {notice && (
+          <p className="text-sm text-emerald-700" role="status">
+            {notice}
+          </p>
+        )}
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
             <h1 className="text-2xl font-bold text-espresso">Certifications</h1>
             <p className="text-sm text-espresso/60 mt-1">
-              Define training completion requirements and manage official credentials
+              Define training completion requirements and manage official
+              credentials
             </p>
           </div>
           <Link
@@ -114,11 +136,18 @@ export default function Certifications() {
         {isLoading ? (
           <LoadingState label="Loading certifications..." />
         ) : error ? (
-          <ErrorState message={error} onRetry={() => loadCertifications(pagination.page)} />
+          <ErrorState
+            message={error}
+            onRetry={() => loadCertifications(pagination.page)}
+          />
         ) : certifications.length === 0 ? (
           <EmptyState
             title="No certifications found"
-            description={search || statusFilter ? 'Try clearing filters' : 'Create your first certification to start awarding credentials.'}
+            description={
+              search || statusFilter
+                ? "Try clearing filters"
+                : "Create your first certification to start awarding credentials."
+            }
             action={
               !search && !statusFilter ? (
                 <Link
@@ -141,7 +170,9 @@ export default function Certifications() {
                     <th className="px-6 py-3 font-semibold">Requirements</th>
                     <th className="px-6 py-3 font-semibold">Issued</th>
                     <th className="px-6 py-3 font-semibold">Status</th>
-                    <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                    <th className="px-6 py-3 font-semibold text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-warm/60">
@@ -155,23 +186,36 @@ export default function Certifications() {
                           {cert.title}
                         </Link>
                         {cert.validityDays ? (
-                          <span className="text-xs text-espresso/50">Valid for {cert.validityDays} days</span>
+                          <span className="text-xs text-espresso/50">
+                            Valid for {cert.validityDays} days
+                          </span>
                         ) : (
-                          <span className="text-xs text-espresso/40">Never expires</span>
+                          <span className="text-xs text-espresso/40">
+                            Never expires
+                          </span>
                         )}
                       </td>
                       <td className="px-6 py-4 text-espresso/80">
-                        {cert.course?.title || <span className="text-espresso/40">None attached</span>}
+                        {cert.course?.title || (
+                          <span className="text-espresso/40">
+                            None attached
+                          </span>
+                        )}
                       </td>
                       <td className="px-6 py-4 text-xs text-espresso/70 space-y-0.5">
                         {cert.requirements ? (
                           <>
                             {cert.requirements.minProgressPct !== null && (
-                              <div>Course: {cert.requirements.minProgressPct}%</div>
+                              <div>
+                                Course: {cert.requirements.minProgressPct}%
+                              </div>
                             )}
                             {cert.requirements.quiz && (
                               <div>
-                                Quiz: &ge; {cert.requirements.minQuizScore || cert.requirements.quiz.passingScore}%
+                                Quiz: &ge;{" "}
+                                {cert.requirements.minQuizScore ||
+                                  cert.requirements.quiz.passingScore}
+                                %
                               </div>
                             )}
                           </>
@@ -192,10 +236,11 @@ export default function Certifications() {
                         >
                           View
                         </Link>
-                        {cert.status !== 'ARCHIVED' && (
+                        {cert.status !== "ARCHIVED" && (
                           <button
                             type="button"
                             onClick={() => handleArchive(cert)}
+                            disabled={busy}
                             className="text-xs font-medium text-espresso/50 hover:text-burgundy px-2.5 py-1.5 rounded-lg hover:bg-burgundy/10 transition"
                           >
                             Archive
@@ -220,4 +265,3 @@ export default function Certifications() {
     </HrLayout>
   );
 }
-

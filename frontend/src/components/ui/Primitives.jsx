@@ -1,72 +1,93 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from "react";
+
+export function useFieldIds(prefix) {
+  const id = useId();
+  return {
+    inputId: `${prefix}-${id}`,
+    errorId: `${prefix}-${id}-error`,
+  };
+}
 
 const STATUS_STYLES = {
-  DRAFT: 'bg-slate-100 text-slate-600',
-  PUBLISHED: 'bg-emerald-50 text-emerald-700',
-  ARCHIVED: 'bg-slate-100 text-slate-400',
-  ASSIGNED: 'bg-gold/10 text-gold',
-  IN_PROGRESS: 'bg-blue-50 text-blue-700',
-  COMPLETED: 'bg-emerald-50 text-emerald-700',
-  CANCELLED: 'bg-slate-100 text-slate-400',
-  OVERDUE: 'bg-burgundy/10 text-burgundy',
-  ACTIVE: 'bg-emerald-50 text-emerald-700',
-  INACTIVE: 'bg-slate-100 text-slate-500',
+  DRAFT: "bg-slate-100 text-slate-600",
+  PUBLISHED: "bg-emerald-50 text-emerald-700",
+  ARCHIVED: "bg-slate-100 text-slate-400",
+  ASSIGNED: "bg-gold/10 text-gold",
+  IN_PROGRESS: "bg-blue-50 text-blue-700",
+  COMPLETED: "bg-emerald-50 text-emerald-700",
+  CANCELLED: "bg-slate-100 text-slate-400",
+  OVERDUE: "bg-burgundy/10 text-burgundy",
+  ACTIVE: "bg-emerald-50 text-emerald-700",
+  INACTIVE: "bg-slate-100 text-slate-500",
+  SUSPENDED: "bg-burgundy/10 text-burgundy",
   // Quiz attempt and result statuses
-  PASSED: 'bg-emerald-50 text-emerald-700',
-  FAILED: 'bg-burgundy/10 text-burgundy',
-  GRADED: 'bg-emerald-50 text-emerald-700',
-  SUBMITTED: 'bg-blue-50 text-blue-700',
-  EXPIRED: 'bg-burgundy/10 text-burgundy',
+  PASSED: "bg-emerald-50 text-emerald-700",
+  FAILED: "bg-burgundy/10 text-burgundy",
+  GRADED: "bg-emerald-50 text-emerald-700",
+  SUBMITTED: "bg-blue-50 text-blue-700",
+  EXPIRED: "bg-burgundy/10 text-burgundy",
   // Certification and competency statuses
-  REVOKED: 'bg-burgundy/15 text-burgundy font-semibold',
-  BEGINNER: 'bg-slate-100 text-slate-700',
-  INTERMEDIATE: 'bg-blue-50 text-blue-700',
-  ADVANCED: 'bg-gold/15 text-gold font-medium',
-  EXPERT: 'bg-emerald-50 text-emerald-800 font-semibold',
+  REVOKED: "bg-burgundy/15 text-burgundy font-semibold",
+  BEGINNER: "bg-slate-100 text-slate-700",
+  INTERMEDIATE: "bg-blue-50 text-blue-700",
+  ADVANCED: "bg-gold/15 text-gold font-medium",
+  EXPERT: "bg-emerald-50 text-emerald-800 font-semibold",
 };
 
 const STATUS_LABELS = {
-  IN_PROGRESS: 'In Progress',
-  REVOKED: 'Revoked',
-  EXPIRED: 'Expired',
+  IN_PROGRESS: "In Progress",
+  REVOKED: "Revoked",
+  EXPIRED: "Expired",
 };
 
 /** Never conveys status through color alone — always paired with text. */
 export function StatusBadge({ status, overdue = false }) {
-  const effectiveStatus = overdue ? 'OVERDUE' : status;
-  const label = overdue ? 'Overdue' : STATUS_LABELS[status] || (status ? status.charAt(0) + status.slice(1).toLowerCase() : '');
+  const effectiveStatus = overdue ? "OVERDUE" : status;
+  const label = overdue
+    ? "Overdue"
+    : STATUS_LABELS[status] ||
+      (status ? status.charAt(0) + status.slice(1).toLowerCase() : "");
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${STATUS_STYLES[effectiveStatus] || 'bg-slate-100 text-slate-600'}`}>
+    <span
+      className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-medium ${STATUS_STYLES[effectiveStatus] || "bg-slate-100 text-slate-600"}`}
+    >
       {label}
     </span>
   );
 }
 
-export function ProgressBar({ value = 0, className = '' }) {
-  const clamped = Math.max(0, Math.min(100, value));
+export function ProgressBar({ value = 0, className = "", dark = false }) {
+  const numericValue = Number(value);
+  const clamped = Number.isFinite(numericValue) ? Math.max(0, Math.min(100, numericValue)) : 0;
   return (
     <div className={`w-full ${className}`}>
-      <div className="flex items-center justify-between text-xs text-espresso/60 mb-1">
+      <div className={`flex items-center justify-between text-xs mb-1 ${dark ? "text-white/75" : "text-espresso/60"}`}>
         <span>Progress</span>
-        <span className="font-medium text-espresso">{clamped}%</span>
+        <span className={`font-medium ${dark ? "text-white" : "text-espresso"}`}>{clamped}%</span>
       </div>
       <div
-        className="h-2 rounded-full bg-border-warm/60 overflow-hidden"
+        className={`h-2 rounded-full overflow-hidden ${dark ? "bg-white/20" : "bg-border-warm/60"}`}
         role="progressbar"
         aria-valuenow={clamped}
         aria-valuemin={0}
         aria-valuemax={100}
       >
-        <div className="h-full bg-gold rounded-full transition-all" style={{ width: `${clamped}%` }} />
+        <div
+          className="h-full bg-gold rounded-full transition-all"
+          style={{ width: `${clamped}%` }}
+        />
       </div>
     </div>
   );
 }
 
-export function SearchInput({ value, onChange, placeholder = 'Search...' }) {
+export function SearchInput({ value, onChange, placeholder = "Search..." }) {
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-espresso/30 text-sm" aria-hidden="true">
+      <span
+        className="absolute left-3 top-1/2 -translate-y-1/2 text-espresso/30 text-sm"
+        aria-hidden="true"
+      >
         ⌕
       </span>
       <input
@@ -104,7 +125,10 @@ export function FilterDropdown({ label, value, onChange, options }) {
 export function Pagination({ page, totalPages, onChange }) {
   if (totalPages <= 1) return null;
   return (
-    <nav className="flex items-center justify-center gap-2 mt-6" aria-label="Pagination">
+    <nav
+      className="flex items-center justify-center gap-2 mt-6"
+      aria-label="Pagination"
+    >
       <button
         type="button"
         onClick={() => onChange(page - 1)}
@@ -128,27 +152,81 @@ export function Pagination({ page, totalPages, onChange }) {
   );
 }
 
-export function ConfirmDialog({ open, title, description, confirmLabel = 'Confirm', cancelLabel = 'Cancel', onConfirm, onCancel, danger = false }) {
+export function ConfirmDialog({
+  open,
+  title,
+  description,
+  descriptionId,
+  titleId,
+  confirmLabel = "Confirm",
+  cancelLabel = "Cancel",
+  onConfirm,
+  onCancel,
+  danger = false,
+}) {
+  const dialogRef = useRef(null);
+  useEffect(() => {
+    if (!open) return undefined;
+    const previousFocus = document.activeElement;
+    dialogRef.current?.querySelector("button")?.focus();
+    function handleKeyDown(event) {
+      if (event.key === "Escape") onCancel?.();
+      if (event.key === "Tab" && dialogRef.current) {
+        const buttons = dialogRef.current.querySelectorAll("button:not([disabled])");
+        if (buttons.length < 2) return;
+        if (event.shiftKey && document.activeElement === buttons[0]) {
+          event.preventDefault();
+          buttons[buttons.length - 1].focus();
+        } else if (!event.shiftKey && document.activeElement === buttons[buttons.length - 1]) {
+          event.preventDefault();
+          buttons[0].focus();
+        }
+      }
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousFocus?.focus?.();
+    };
+  }, [open, onCancel]);
   if (!open) return null;
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/40 px-4" role="dialog" aria-modal="true" aria-labelledby="confirm-dialog-title">
-      <div className="bg-white rounded-2xl border border-border-warm shadow-lg max-w-sm w-full p-6">
-        <h2 id="confirm-dialog-title" className="text-lg font-semibold text-espresso">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/40 px-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCancel?.();
+      }}
+      role="presentation"
+    >
+      <div
+        ref={dialogRef}
+        className="bg-white rounded-2xl border-border-warm shadow-lg max-w-sm w-full p-6"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        aria-describedby={description ? descriptionId : undefined}
+      >
+        <h2
+          id={titleId}
+          className="text-lg font-semibold text-espresso"
+        >
           {title}
         </h2>
-        {description && <p className="text-sm text-espresso/60 mt-2">{description}</p>}
+        {description && (
+          <p id={descriptionId} className="text-sm text-espresso/60 mt-2">{description}</p>
+        )}
         <div className="flex justify-end gap-3 mt-6">
           <button
             type="button"
-            onClick={onCancel}
-            className="px-4 py-2 rounded-xl border border-border-warm text-sm font-medium text-espresso hover:bg-cream transition"
+                       onClick={onCancel}
+            className="px-4 py-2 rounded-xl border-border-warm text-sm font-medium text-espresso hover:bg-cream focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold transition"
           >
             {cancelLabel}
           </button>
           <button
             type="button"
             onClick={onConfirm}
-            className={`px-4 py-2 rounded-xl text-sm font-medium text-white transition ${danger ? 'bg-burgundy hover:bg-burgundy/90' : 'bg-espresso hover:bg-espresso/90'}`}
+            className={`px-4 py-2 rounded-xl text-sm font-medium text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2 transition ${danger ? "bg-burgundy hover:bg-burgundy/90" : "bg-espresso hover:bg-espresso/90"}`}
           >
             {confirmLabel}
           </button>
@@ -157,26 +235,38 @@ export function ConfirmDialog({ open, title, description, confirmLabel = 'Confir
     </div>
   );
 }
-
-export function EmptyState({ title = 'Nothing here yet', description, action }) {
+export function EmptyState({
+  title = "Nothing here yet",
+  description,
+  action,
+}) {
   return (
     <div className="text-center py-16 px-4">
       <p className="text-espresso font-medium">{title}</p>
-      {description && <p className="text-sm text-espresso/50 mt-1">{description}</p>}
+      {description && (
+        <p className="text-sm text-espresso/50 mt-1">{description}</p>
+      )}
       {action && <div className="mt-4">{action}</div>}
     </div>
   );
 }
 
-export function LoadingState({ label = 'Loading...' }) {
+export function LoadingState({ label = "Loading..." }) {
   return (
-    <div className="text-center py-16 px-4 text-espresso/50 text-sm" role="status" aria-live="polite">
+    <div
+      className="text-center py-16 px-4 text-espresso/50 text-sm"
+      role="status"
+      aria-live="polite"
+    >
       {label}
     </div>
   );
 }
 
-export function ErrorState({ message = 'Something went wrong. Please try again.', onRetry }) {
+export function ErrorState({
+  message = "Something went wrong. Please try again.",
+  onRetry,
+}) {
   return (
     <div className="text-center py-16 px-4" role="alert">
       <p className="text-burgundy font-medium">Unable to load data</p>
@@ -196,10 +286,24 @@ export function ErrorState({ message = 'Something went wrong. Please try again.'
 
 export function useConfirm() {
   const [state, setState] = useState(null); // { title, description, danger, resolve }
+  const dialogId = useId();
 
-  function confirm({ title, description, danger = false, confirmLabel, cancelLabel }) {
+  function confirm({
+    title,
+    description,
+    danger = false,
+    confirmLabel,
+    cancelLabel,
+  }) {
     return new Promise((resolve) => {
-      setState({ title, description, danger, confirmLabel, cancelLabel, resolve });
+      setState({
+        title,
+        description,
+        danger,
+        confirmLabel,
+        cancelLabel,
+        resolve,
+      });
     });
   }
 
@@ -208,6 +312,8 @@ export function useConfirm() {
       open
       title={state.title}
       description={state.description}
+      titleId={`${dialogId}-title`}
+      descriptionId={`${dialogId}-description`}
       danger={state.danger}
       confirmLabel={state.confirmLabel}
       cancelLabel={state.cancelLabel}

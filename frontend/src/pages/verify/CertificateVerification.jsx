@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { verifyCertificate } from '../../services/certificateService';
 import { StatusBadge, LoadingState } from '../../components/ui/Primitives';
 

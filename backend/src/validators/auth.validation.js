@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { checkPasswordPolicy } from '../utils/password.js';
+import { slugify } from '../utils/slugify.js';
 
 // Shared password rule: Zod handles "is it a string" shape validation;
 // checkPasswordPolicy (same function the service re-uses) enforces the
@@ -24,18 +25,32 @@ export const loginSchema = z.object({
   }),
 });
 
+const normalizedEmail = z.string().trim().email('Invalid email address').transform((value) => value.toLowerCase());
+const companySlugField = z.string()
+  .trim()
+  .min(2, 'Company identifier must be at least 2 characters')
+  .max(60)
+  .transform(slugify)
+  .refine((value) => value.length >= 2, 'Company identifier must contain at least 2 letters or numbers');
+
 export const registerCompanySchema = z.object({
   body: z.object({
-    companyName: z.string().trim().min(2, 'Company name is required'),
-    adminName: z.string().trim().min(2, 'Admin name is required'),
-    email: z.string().email('Invalid email address'),
+    companyName: z.string().trim().min(2, 'Company name is required').max(150),
+    companyEmail: normalizedEmail,
+    companySlug: companySlugField.optional(),
+    adminName: z.string().trim().min(2, 'Admin name is required').max(150),
+    email: normalizedEmail,
     password: passwordField,
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+  }).strict().refine((body) => body.password === body.confirmPassword, {
+    message: 'Passwords do not match',
+    path: ['confirmPassword'],
   }),
 });
 
 export const forgotPasswordSchema = z.object({
   body: z.object({
-    email: z.string().email('Invalid email address'),
+    email: normalizedEmail,
   }),
 });
 
@@ -60,24 +75,29 @@ export const verifyEmailSchema = z.object({
 
 export const resendVerificationSchema = z.object({
   body: z.object({
-    email: z.string().email('Invalid email address'),
+    email: normalizedEmail,
   }),
 });
 
 const managedUserFields = {
-  name: z.string().trim().min(2, 'Name is required'),
-  email: z.string().email('Invalid email address'),
+  name: z.string().trim().min(2, 'Name is required').max(150),
+  email: normalizedEmail,
   departmentId: z.string().uuid().optional().nullable(),
   positionId: z.string().uuid().optional().nullable(),
-  employeeNumber: z.string().trim().min(1).optional().nullable(),
-  role: z.enum(['COMPANY_ADMIN', 'EMPLOYEE', 'INSTRUCTOR']),
+  employeeNumber: z.string().trim().min(1).max(100).optional().nullable(),
+  role: z.enum(['EMPLOYEE', 'INSTRUCTOR']),
 };
+
+// Search filters accept each defined system role independently of the role
+// mutation allowlist above. Tenant-scoped queries still prevent platform
+// accounts or another company's users from being exposed.
+const userRoleFilter = z.enum(['COMPANY_ADMIN', 'INSTRUCTOR', 'EMPLOYEE']);
 
 export const createEmployeeSchema = z.object({
   body: z.object({
     ...managedUserFields,
     password: passwordField,
-  }),
+  }).strict(),
 });
 
 export const updateEmployeeSchema = z.object({
@@ -89,7 +109,7 @@ export const updateEmployeeSchema = z.object({
     employeeNumber: managedUserFields.employeeNumber,
     role: managedUserFields.role.optional(),
     password: passwordField.optional(),
-  }).refine((body) => Object.keys(body).length > 0, 'At least one field is required'),
+  }).strict().refine((body) => Object.keys(body).length > 0, 'At least one field is required'),
 });
 
 export const employeeStatusSchema = z.object({
@@ -101,7 +121,7 @@ export const employeeListSchema = z.object({
     page: z.coerce.number().int().min(1).default(1),
     limit: z.coerce.number().int().min(1).max(100).default(20),
     search: z.string().trim().optional(),
-    role: z.enum(['COMPANY_ADMIN', 'EMPLOYEE', 'INSTRUCTOR']).optional(),
+    role: userRoleFilter.optional(),
     status: z.enum(['ACTIVE', 'INACTIVE', 'SUSPENDED']).optional(),
     departmentId: z.string().uuid().optional(),
   }),

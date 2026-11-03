@@ -34,10 +34,16 @@ company) → issue tokens → record activity → respond.
 - Payload: `{ sub: userId, role: roleName, companyId }` — nothing else.
   No email, no name, no password hash. JWTs are base64-encoded, not
   encrypted; anything in the payload is effectively public.
-- **Every** request still re-reads the user from the database
+- **Every** request still re-reads the user and company from the database
   (`authenticate.js`) rather than trusting the JWT payload for role/status —
   a role change or suspension takes effect on the very next request, not
   after the access token happens to expire.
+- Tenant access JWTs carry the company's dedicated `securityVersion` at
+  issuance. Authentication requires that value to match the current company
+  row, making all tenant JWTs from before a company status transition invalid
+  permanently, including after reactivation. Unrelated company profile edits
+  do not change this version. A new login after reactivation receives the
+  current version. Super Admin JWTs are not company-scoped.
 
 ## 4. Refresh token strategy
 
@@ -50,7 +56,9 @@ appropriate for a high-entropy random token, unlike a human-chosen password).
 
 **Rotation**: every `POST /api/auth/refresh` call issues a brand-new refresh
 token and revokes the one that was just used, linking them via
-`replacedByTokenId`, inside one Prisma transaction (`$transaction`).
+`replacedByTokenId`, inside one Prisma transaction (`$transaction`). The
+revocation uses a conditional update so simultaneous requests cannot both
+successfully rotate the same token.
 
 **Reuse detection**: if a *revoked* refresh token is presented again — the
 strongest signal available that a token was stolen and the legitimate user
@@ -173,6 +181,15 @@ password or raw token — only metadata like `{ reason: 'invalid_password' }`.
 - `authenticate` re-reads the DB every request; JWT claims are never
   trusted for authorization, only identity.
 - Refresh token rotation + reuse detection with full-session revocation.
+- Credential and access-critical administrative changes invalidate unused
+  password-reset links and revoke all active refresh sessions atomically.
+  Reset consumption locks the user row and consumes the token conditionally,
+  serializing it with Super Admin credential updates.
+- A company status transition (including reactivation) revokes all tenant
+  refresh sessions and increments the company's dedicated `securityVersion`
+  access-token epoch. The update, revocation, and audit record are one
+  transaction. The additive `securityVersion` migration must be applied before
+  deploying this version; deployment details are in the migration README.
 - Password reset revokes **all** active sessions, not just the one that
   requested it.
 - 404 (not 403) on cross-tenant resource access — no existence leak.

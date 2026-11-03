@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import prisma from '../config/db.js';
-import { asyncHandler } from '../middleware/errorHandler.js';
+import { asyncHandler, AppError } from '../middleware/errorHandler.js';
 
 const router = Router();
 
@@ -27,7 +27,11 @@ router.get('/', (req, res) => {
 router.get(
   '/db',
   asyncHandler(async (req, res) => {
-    await prisma.$queryRaw`SELECT 1`;
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+    } catch {
+      throw new AppError('Database is unavailable or its configured credentials were rejected', 503, 'DATABASE_UNAVAILABLE');
+    }
     res.status(200).json({
       success: true,
       message: 'Database connection is healthy',

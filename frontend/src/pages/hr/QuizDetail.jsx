@@ -1,46 +1,84 @@
-import { useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import HrLayout from '../../layouts/HrLayout';
-import QuestionCard from '../../components/QuestionCard';
-import QuestionEditor from '../../components/QuestionEditor';
-import { Modal } from '../../components/ui/Modal';
-import { StatusBadge, LoadingState, ErrorState, EmptyState, useConfirm } from '../../components/ui/Primitives';
-import * as quizService from '../../services/quizService';
+import { useState } from "react";
+import { useParams, Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import HrLayout from "../../layouts/HrLayout";
+import QuestionCard from "../../components/QuestionCard";
+import QuestionEditor from "../../components/QuestionEditor";
+import { Modal } from "../../components/ui/Modal";
+import {
+  StatusBadge,
+  LoadingState,
+  ErrorState,
+  EmptyState,
+  useConfirm,
+} from "../../components/ui/Primitives";
+import * as quizService from "../../services/quizService";
 
-export default function QuizDetail({ basePath = '/hr', Layout = HrLayout }) {
+export default function QuizDetail({ basePath = "/hr", Layout = HrLayout }) {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const { confirm, dialog } = useConfirm();
 
   const [questionModal, setQuestionModal] = useState(null); // null | 'create' | question object
   const [publishError, setPublishError] = useState(null);
+  const [actionError, setActionError] = useState("");
+  const [editorNotice, setEditorNotice] = useState("");
+  const [editorError, setEditorError] = useState("");
 
-  const quizQuery = useQuery({ queryKey: ['quiz', id], queryFn: () => quizService.getQuiz(id) });
+  const quizQuery = useQuery({
+    queryKey: ["quiz", id],
+    queryFn: () => quizService.getQuiz(id),
+  });
 
   function invalidate() {
-    queryClient.invalidateQueries({ queryKey: ['quiz', id] });
-    queryClient.invalidateQueries({ queryKey: ['quizzes'] });
+    queryClient.invalidateQueries({ queryKey: ["quiz", id] });
+    queryClient.invalidateQueries({ queryKey: ["quizzes"] });
   }
 
   const createQuestionMutation = useMutation({
     mutationFn: (data) => quizService.createQuestion(id, data),
-    onSuccess: () => { invalidate(); setQuestionModal(null); },
+    onSuccess: () => {
+      invalidate();
+      setQuestionModal(null);
+      setActionError("");
+      setEditorError("");
+      setEditorNotice("Question added successfully.");
+    },
+    onError: (error) => {
+      setEditorNotice("");
+      setEditorError(error.response?.data?.message || "Unable to add question.");
+    },
   });
   const updateQuestionMutation = useMutation({
-    mutationFn: ({ questionId, data }) => quizService.updateQuestion(questionId, data),
-    onSuccess: () => { invalidate(); setQuestionModal(null); },
+    mutationFn: ({ questionId, data }) =>
+      quizService.updateQuestion(questionId, data),
+    onSuccess: () => {
+      invalidate();
+      setQuestionModal(null);
+      setActionError("");
+      setEditorError("");
+      setEditorNotice("Question updated successfully.");
+    },
+    onError: (error) => {
+      setEditorNotice("");
+      setEditorError(error.response?.data?.message || "Unable to update question.");
+    },
   });
   const deleteQuestionMutation = useMutation({
     mutationFn: (questionId) => quizService.deleteQuestion(questionId),
     onSuccess: invalidate,
+    onError: (error) =>
+      setActionError(
+        error.response?.data?.message || "Unable to delete question.",
+      ),
   });
   const publishMutation = useMutation({
     mutationFn: () => quizService.publishQuiz(id),
     onSuccess: invalidate,
     onError: (err) => {
       const data = err.response?.data;
-      if (data?.error === 'QUIZ_NOT_PUBLISHABLE') setPublishError(data.details?.problems || []);
+      if (data?.error === "QUIZ_NOT_PUBLISHABLE")
+        setPublishError(data.details?.problems || []);
     },
   });
   const archiveMutation = useMutation({
@@ -58,7 +96,10 @@ export default function QuizDetail({ basePath = '/hr', Layout = HrLayout }) {
   if (quizQuery.isError) {
     return (
       <Layout>
-        <ErrorState message="Unable to load this quiz." onRetry={quizQuery.refetch} />
+        <ErrorState
+          message="Unable to load this quiz."
+          onRetry={quizQuery.refetch}
+        />
       </Layout>
     );
   }
@@ -67,25 +108,27 @@ export default function QuizDetail({ basePath = '/hr', Layout = HrLayout }) {
 
   async function handleDeleteQuestion(question) {
     const ok = await confirm({
-      title: 'Delete this question?',
-      description: 'This cannot be undone if no employee has answered it yet.',
+      title: "Delete this question?",
+      description: "This cannot be undone if no employee has answered it yet.",
       danger: true,
-      confirmLabel: 'Delete Question',
+      confirmLabel: "Delete Question",
     });
     if (ok) deleteQuestionMutation.mutate(question.id);
   }
 
   async function handleArchive() {
     const ok = await confirm({
-      title: 'Archive this quiz?',
-      description: 'It can no longer be started as a new attempt. Existing attempt history is kept.',
+      title: "Archive this quiz?",
+      description:
+        "It can no longer be started as a new attempt. Existing attempt history is kept.",
       danger: true,
-      confirmLabel: 'Archive Quiz',
+      confirmLabel: "Archive Quiz",
     });
     if (ok) archiveMutation.mutate();
   }
 
   function handleDuplicate(question) {
+    setEditorNotice("");
     setQuestionModal({
       ...question,
       id: undefined,
@@ -96,18 +139,39 @@ export default function QuizDetail({ basePath = '/hr', Layout = HrLayout }) {
   return (
     <HrLayout>
       {dialog}
-      <Link to={`${basePath}/quizzes`} className="text-sm text-gold hover:underline">
+      {actionError && (
+        <div
+          className="mb-4 rounded-xl border-burgundy/20 bg-burgundy/5 px-4 py-3 text-sm text-burgundy"
+          role="alert"
+        >
+          {actionError}
+          <button
+            type="button"
+            onClick={() => setActionError("")}
+            className="ml-3 underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+      <Link
+        to={`${basePath}/quizzes`}
+        className="text-sm text-gold hover:underline"
+      >
         ← Back to quizzes
       </Link>
-
+      {editorNotice && <p className="mt-3 text-sm text-emerald-700" role="status">{editorNotice}</p>}
+      {editorError && <p className="mt-3 text-sm text-burgundy" role="alert">{editorError}</p>}
       <div className="mt-3 bg-white border border-border-warm rounded-2xl p-6">
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1 className="text-2xl font-semibold text-espresso">{quiz.title}</h1>
+            <h1 className="text-2xl font-semibold text-espresso">
+              {quiz.title}
+            </h1>
             <p className="text-sm text-espresso/60 mt-1">{quiz.description}</p>
             <p className="text-xs text-espresso/40 mt-2">
               {quiz.course?.title}
-              {quiz.lesson ? ` · ${quiz.lesson.title}` : ''}
+              {quiz.lesson ? ` · ${quiz.lesson.title}` : ""}
             </p>
           </div>
           <StatusBadge status={quiz.status} />
@@ -116,7 +180,9 @@ export default function QuizDetail({ basePath = '/hr', Layout = HrLayout }) {
         <dl className="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-5 text-sm">
           <div>
             <dt className="text-espresso/40 text-xs">Time Limit</dt>
-            <dd className="text-espresso">{quiz.timeLimit ? `${quiz.timeLimit} min` : 'Untimed'}</dd>
+            <dd className="text-espresso">
+              {quiz.timeLimit ? `${quiz.timeLimit} min` : "Untimed"}
+            </dd>
           </div>
           <div>
             <dt className="text-espresso/40 text-xs">Passing Score</dt>
@@ -139,17 +205,20 @@ export default function QuizDetail({ basePath = '/hr', Layout = HrLayout }) {
           >
             View Results
           </Link>
-          {quiz.status === 'DRAFT' && (
+          {quiz.status === "DRAFT" && (
             <button
               type="button"
-              onClick={() => { setPublishError(null); publishMutation.mutate(); }}
+              onClick={() => {
+                setPublishError(null);
+                publishMutation.mutate();
+              }}
               disabled={publishMutation.isPending}
               className="px-4 py-2 rounded-xl bg-espresso text-cream text-sm font-medium hover:bg-espresso/90 transition disabled:opacity-50"
             >
-              {publishMutation.isPending ? 'Publishing...' : 'Publish'}
+              {publishMutation.isPending ? "Publishing..." : "Publish"}
             </button>
           )}
-          {quiz.status !== 'ARCHIVED' && (
+          {quiz.status !== "ARCHIVED" && (
             <button
               type="button"
               onClick={handleArchive}
@@ -175,21 +244,28 @@ export default function QuizDetail({ basePath = '/hr', Layout = HrLayout }) {
       <div className="mt-8">
         <div className="flex items-center justify-between">
           <h2 className="text-lg font-semibold text-espresso">Questions</h2>
-          <button type="button" onClick={() => setQuestionModal('create')} className="text-sm text-gold hover:underline font-medium">
+          <button
+            type="button"
+            onClick={() => { setEditorNotice(""); setQuestionModal("create"); }}
+            className="text-sm text-gold hover:underline font-medium"
+          >
             + Add Question
           </button>
         </div>
 
         <div className="mt-4 space-y-3">
           {quiz.questions.length === 0 ? (
-            <EmptyState title="No questions yet." description="Add your first question to start building this quiz." />
+            <EmptyState
+              title="No questions yet."
+              description="Add your first question to start building this quiz."
+            />
           ) : (
             quiz.questions.map((question, index) => (
               <QuestionCard
                 key={question.id}
                 question={question}
                 index={index}
-                onEdit={() => setQuestionModal(question)}
+                onEdit={() => { setEditorNotice(""); setQuestionModal(question); }}
                 onDelete={() => handleDeleteQuestion(question)}
                 onDuplicate={() => handleDuplicate(question)}
               />
@@ -198,16 +274,32 @@ export default function QuizDetail({ basePath = '/hr', Layout = HrLayout }) {
         </div>
       </div>
 
-      <Modal open={questionModal !== null} title={questionModal === 'create' || !questionModal?.id ? 'Add Question' : 'Edit Question'} onClose={() => setQuestionModal(null)} wide>
+      <Modal
+        open={questionModal !== null}
+        title={
+          questionModal === "create" || !questionModal?.id
+            ? "Add Question"
+            : "Edit Question"
+        }
+        onClose={() => setQuestionModal(null)}
+        wide
+      >
         {questionModal && (
           <QuestionEditor
-            initial={questionModal === 'create' ? undefined : questionModal}
-            submitLabel={questionModal === 'create' || !questionModal?.id ? 'Add Question' : 'Save Changes'}
+            initial={questionModal === "create" ? undefined : questionModal}
+            submitLabel={
+              questionModal === "create" || !questionModal?.id
+                ? "Add Question"
+                : "Save Changes"
+            }
             onCancel={() => setQuestionModal(null)}
             onSubmit={(data) =>
-              questionModal === 'create' || !questionModal?.id
+              questionModal === "create" || !questionModal?.id
                 ? createQuestionMutation.mutateAsync(data)
-                : updateQuestionMutation.mutateAsync({ questionId: questionModal.id, data })
+                : updateQuestionMutation.mutateAsync({
+                    questionId: questionModal.id,
+                    data,
+                  })
             }
           />
         )}

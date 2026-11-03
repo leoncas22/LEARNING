@@ -290,8 +290,10 @@ async function main() {
   const roleNames = ['SUPER_ADMIN', 'COMPANY_ADMIN', 'INSTRUCTOR', 'EMPLOYEE'];
   const roleEntities = {};
   for (const name of roleNames) {
-    roleEntities[name] = await prisma.role.create({
-      data: { name, description: `${name} role` },
+    roleEntities[name] = await prisma.role.upsert({
+      where: { name },
+      create: { name, description: `${name} role` },
+      update: { description: `${name} role` },
     });
   }
 

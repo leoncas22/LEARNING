@@ -1,35 +1,35 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import HrLayout from '../../layouts/HrLayout';
-import { createCertification } from '../../services/certificationService';
-import { listCourses } from '../../services/courseService';
-import apiClient from '../../services/apiClient';
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import HrLayout from "../../layouts/HrLayout";
+import { createCertification } from "../../services/certificationService";
+import { listCourses } from "../../services/courseService";
+import apiClient from "../../services/apiClient";
 
 const VALIDITY_PRESETS = [
-  { label: 'Never Expires', days: null },
-  { label: '1 Month (30 days)', days: 30 },
-  { label: '3 Months (90 days)', days: 90 },
-  { label: '6 Months (180 days)', days: 180 },
-  { label: '1 Year (365 days)', days: 365 },
-  { label: '2 Years (730 days)', days: 730 },
-  { label: 'Custom', days: 'custom' },
+  { label: "Never Expires", days: null },
+  { label: "1 Month (30 days)", days: 30 },
+  { label: "3 Months (90 days)", days: 90 },
+  { label: "6 Months (180 days)", days: 180 },
+  { label: "1 Year (365 days)", days: 365 },
+  { label: "2 Years (730 days)", days: 730 },
+  { label: "Custom", days: "custom" },
 ];
 
 export default function CreateCertification() {
   const navigate = useNavigate();
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [courseId, setCourseId] = useState('');
-  const [status, setStatus] = useState('DRAFT');
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [courseId, setCourseId] = useState("");
+  const [status, setStatus] = useState("DRAFT");
 
   // Validity
   const [validityPreset, setValidityPreset] = useState(null);
-  const [customDays, setCustomDays] = useState('');
+  const [customDays, setCustomDays] = useState("");
 
   // Requirements
   const [minProgressPct, setMinProgressPct] = useState(100);
-  const [quizId, setQuizId] = useState('');
+  const [quizId, setQuizId] = useState("");
   const [minQuizScore, setMinQuizScore] = useState(80);
 
   // Available options
@@ -37,41 +37,65 @@ export default function CreateCertification() {
   const [quizzes, setQuizzes] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [optionsError, setOptionsError] = useState("");
+  const [coursesLoading, setCoursesLoading] = useState(true);
+  const [quizzesLoading, setQuizzesLoading] = useState(false);
+  const [retryLoading, setRetryLoading] = useState(false);
 
   useEffect(() => {
+    let cancelled = false;
     async function fetchCourses() {
+      setCoursesLoading(true);
+      setOptionsError("");
       try {
         const res = await listCourses({ limit: 100 });
-        setCourses(res.data || []);
+        if (!cancelled) setCourses(res.data || []);
       } catch (err) {
-        console.error('Failed to load courses', err);
+        if (!cancelled) setOptionsError(err.response?.data?.message || "Unable to load courses. Retry to choose a course.");
+      } finally {
+        if (!cancelled) {
+          setCoursesLoading(false);
+        }
       }
     }
     fetchCourses();
+    return () => { cancelled = true; };
   }, []);
 
   // When courseId changes, fetch quizzes for that course
   useEffect(() => {
+    let cancelled = false;
     async function fetchQuizzes() {
       if (!courseId) {
         setQuizzes([]);
-        setQuizId('');
+        setQuizId("");
+        setQuizzesLoading(false);
         return;
       }
+      setQuizzesLoading(true);
+      setOptionsError("");
       try {
-        const res = await apiClient.get('/quizzes', { params: { courseId, limit: 50 } });
-        setQuizzes(res.data?.data || []);
+        const res = await apiClient.get("/quizzes", {
+          params: { courseId, limit: 50 },
+        });
+        if (!cancelled) setQuizzes(res.data?.data || []);
       } catch (err) {
-        console.error('Failed to load quizzes for course', err);
+        if (!cancelled) setOptionsError(err.response?.data?.message || "Unable to load quizzes for the selected course.");
+      } finally {
+        if (!cancelled) {
+          setQuizzesLoading(false);
+        }
       }
     }
     fetchQuizzes();
+    return () => { cancelled = true; };
   }, [courseId]);
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isLoading) return;
     if (!title.trim()) {
-      setError('Certification name is required');
+      setError("Certification name is required");
       return;
     }
 
@@ -79,7 +103,7 @@ export default function CreateCertification() {
     setError(null);
 
     let finalValidityDays = null;
-    if (validityPreset === 'custom') {
+    if (validityPreset === "custom") {
       finalValidityDays = customDays ? parseInt(customDays, 10) : null;
     } else if (validityPreset !== null) {
       finalValidityDays = validityPreset;
@@ -102,7 +126,7 @@ export default function CreateCertification() {
       const created = await createCertification(payload);
       navigate(`/hr/certifications/${created.id}`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create certification');
+      setError(err.response?.data?.message || "Failed to create certification");
     } finally {
       setIsLoading(false);
     }
@@ -113,10 +137,15 @@ export default function CreateCertification() {
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <Link to="/hr/certifications" className="text-xs font-medium text-gold hover:underline">
+            <Link
+              to="/hr/certifications"
+              className="text-xs font-medium text-gold hover:underline"
+            >
               &larr; Back to Certifications
             </Link>
-            <h1 className="text-2xl font-bold text-espresso mt-1">Create Certification</h1>
+            <h1 className="text-2xl font-bold text-espresso mt-1">
+              Create Certification
+            </h1>
             <p className="text-sm text-espresso/60">
               Establish an official credential with automated issuing criteria
             </p>
@@ -128,23 +157,55 @@ export default function CreateCertification() {
             {error}
           </div>
         )}
+        {optionsError && (
+          <div className="flex flex-wrap items-center gap-3 p-4 rounded-xl bg-burgundy/5 text-burgundy text-sm border-burgundy/20" role="alert">
+            <span>{optionsError}</span>
+            <button type="button" disabled={retryLoading} onClick={async () => {
+              setRetryLoading(true);
+              setOptionsError("");
+              const retryingQuizzes = Boolean(courseId);
+              if (retryingQuizzes) setQuizzesLoading(true);
+              else setCoursesLoading(true);
+              try {
+                if (courseId) {
+                  const res = await apiClient.get("/quizzes", { params: { courseId, limit: 50 } });
+                  setQuizzes(res.data?.data || []);
+                } else {
+                  const res = await listCourses({ limit: 100 });
+                  setCourses(res.data || []);
+                }
+              } catch (requestError) {
+                setOptionsError(requestError.response?.data?.message || "Unable to load options.");
+              } finally {
+                setRetryLoading(false);
+                if (retryingQuizzes) setQuizzesLoading(false);
+                else setCoursesLoading(false);
+              }
+            }} className="underline disabled:opacity-50">{retryLoading ? "Retrying..." : "Try again"}</button>
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* General Info */}
           <div className="bg-white rounded-2xl border border-border-warm p-6 space-y-4 shadow-sm">
-            <h2 className="text-base font-semibold text-espresso">Certification Information</h2>
+            <h2 className="text-base font-semibold text-espresso">
+              Certification Information
+            </h2>
 
             <div>
-              <label className="block text-xs font-medium uppercase tracking-wider text-espresso/70 mb-1">
+              <label htmlFor="certification-title" className="block text-xs font-medium uppercase tracking-wider text-espresso/70 mb-1">
                 Certification Name *
               </label>
               <input
+                id="certification-title"
                 type="text"
+                minLength={2}
+                maxLength={150}
+                required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Cyber Security Awareness Certification"
                 className="w-full rounded-xl border border-border-warm px-3.5 py-2.5 text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-gold/50"
-                required
               />
             </div>
 
@@ -163,12 +224,15 @@ export default function CreateCertification() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-espresso/70 mb-1">
+                <label htmlFor="certification-course" className="block text-xs font-medium uppercase tracking-wider text-espresso/70 mb-1">
                   Required Course
                 </label>
                 <select
+                  id="certification-course"
                   value={courseId}
                   onChange={(e) => setCourseId(e.target.value)}
+                  aria-busy={coursesLoading}
+                  disabled={coursesLoading}
                   className="w-full rounded-xl border border-border-warm px-3.5 py-2.5 text-sm text-espresso bg-white focus:outline-none focus:ring-2 focus:ring-gold/50"
                 >
                   <option value="">Select a Course (Optional)</option>
@@ -198,9 +262,12 @@ export default function CreateCertification() {
 
           {/* Requirements */}
           <div className="bg-white rounded-2xl border border-border-warm p-6 space-y-4 shadow-sm">
-            <h2 className="text-base font-semibold text-espresso">Issuance Requirements</h2>
+            <h2 className="text-base font-semibold text-espresso">
+              Issuance Requirements
+            </h2>
             <p className="text-xs text-espresso/60">
-              When an employee fulfills all conditions, a verified certificate is automatically issued.
+              When an employee fulfills all conditions, a verified certificate
+              is automatically issued.
             </p>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -214,22 +281,28 @@ export default function CreateCertification() {
                     min="1"
                     max="100"
                     value={minProgressPct}
-                    onChange={(e) => setMinProgressPct(parseInt(e.target.value, 10) || 100)}
+                    onChange={(e) =>
+                      setMinProgressPct(parseInt(e.target.value, 10) || 100)
+                    }
                     disabled={!courseId}
                     className="w-full rounded-xl border border-border-warm px-3.5 py-2.5 text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-gold/50 disabled:opacity-40"
                   />
-                  <span className="text-sm font-medium text-espresso/70">%</span>
+                  <span className="text-sm font-medium text-espresso/70">
+                    %
+                  </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-medium uppercase tracking-wider text-espresso/70 mb-1">
+                <label htmlFor="certification-quiz" className="block text-xs font-medium uppercase tracking-wider text-espresso/70 mb-1">
                   Required Quiz Assessment
                 </label>
                 <select
+                  id="certification-quiz"
                   value={quizId}
                   onChange={(e) => setQuizId(e.target.value)}
-                  disabled={!courseId || quizzes.length === 0}
+                  aria-busy={quizzesLoading}
+                  disabled={!courseId || quizzesLoading || quizzes.length === 0}
                   className="w-full rounded-xl border border-border-warm px-3.5 py-2.5 text-sm text-espresso bg-white focus:outline-none focus:ring-2 focus:ring-gold/50 disabled:opacity-40"
                 >
                   <option value="">None / Not Required</option>
@@ -252,10 +325,14 @@ export default function CreateCertification() {
                       min="0"
                       max="100"
                       value={minQuizScore}
-                      onChange={(e) => setMinQuizScore(parseInt(e.target.value, 10) || 0)}
+                      onChange={(e) =>
+                        setMinQuizScore(parseInt(e.target.value, 10) || 0)
+                      }
                       className="w-full rounded-xl border border-border-warm px-3.5 py-2.5 text-sm text-espresso focus:outline-none focus:ring-2 focus:ring-gold/50"
                     />
-                    <span className="text-sm font-medium text-espresso/70">%</span>
+                    <span className="text-sm font-medium text-espresso/70">
+                      %
+                    </span>
                   </div>
                 </div>
               )}
@@ -264,7 +341,9 @@ export default function CreateCertification() {
 
           {/* Validity */}
           <div className="bg-white rounded-2xl border border-border-warm p-6 space-y-4 shadow-sm">
-            <h2 className="text-base font-semibold text-espresso">Validity & Expiration</h2>
+            <h2 className="text-base font-semibold text-espresso">
+              Validity & Expiration
+            </h2>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
               {VALIDITY_PRESETS.map((p, idx) => (
@@ -274,8 +353,8 @@ export default function CreateCertification() {
                   onClick={() => setValidityPreset(p.days)}
                   className={`px-3 py-2.5 text-xs font-medium rounded-xl border transition text-center ${
                     validityPreset === p.days
-                      ? 'border-gold bg-gold/10 text-espresso font-semibold'
-                      : 'border-border-warm text-espresso/70 hover:bg-cream'
+                      ? "border-gold bg-gold/10 text-espresso font-semibold"
+                      : "border-border-warm text-espresso/70 hover:bg-cream"
                   }`}
                 >
                   {p.label}
@@ -283,7 +362,7 @@ export default function CreateCertification() {
               ))}
             </div>
 
-            {validityPreset === 'custom' && (
+            {validityPreset === "custom" && (
               <div className="mt-3">
                 <label className="block text-xs font-medium uppercase tracking-wider text-espresso/70 mb-1">
                   Custom Validity in Days
@@ -313,7 +392,7 @@ export default function CreateCertification() {
               disabled={isLoading}
               className="px-6 py-2.5 rounded-xl bg-espresso text-cream text-sm font-medium hover:bg-espresso/90 transition shadow-sm disabled:opacity-50"
             >
-              {isLoading ? 'Creating...' : 'Create Certification'}
+              {isLoading ? "Creating..." : "Create Certification"}
             </button>
           </div>
         </form>
@@ -321,4 +400,3 @@ export default function CreateCertification() {
     </HrLayout>
   );
 }
-

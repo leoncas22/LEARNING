@@ -1,14 +1,24 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import HrLayout from '../../layouts/HrLayout';
-import { getCompetency, archiveCompetency } from '../../services/competencyService';
-import { StatusBadge, LoadingState, ErrorState, useConfirm } from '../../components/ui/Primitives';
+import { useState, useEffect } from "react";
+import { useParams, Link } from "react-router-dom";
+import HrLayout from "../../layouts/HrLayout";
+import {
+  getCompetency,
+  archiveCompetency,
+} from "../../services/competencyService";
+import {
+  StatusBadge,
+  LoadingState,
+  ErrorState,
+  useConfirm,
+} from "../../components/ui/Primitives";
 
 export default function CompetencyDetail() {
   const { id } = useParams();
   const [competency, setCompetency] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [actionError, setActionError] = useState("");
+  const [isArchiving, setIsArchiving] = useState(false);
 
   const { confirm, dialog } = useConfirm();
 
@@ -19,7 +29,9 @@ export default function CompetencyDetail() {
       const data = await getCompetency(id);
       setCompetency(data);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load competency details');
+      setError(
+        err.response?.data?.message || "Failed to load competency details",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -31,18 +43,23 @@ export default function CompetencyDetail() {
 
   async function handleArchive() {
     const confirmed = await confirm({
-      title: 'Archive Competency',
-      description: 'Are you sure you want to archive this competency?',
-      confirmLabel: 'Archive',
+      title: "Archive Competency",
+      description: "Are you sure you want to archive this competency?",
+      confirmLabel: "Archive",
       danger: true,
     });
-    if (!confirmed) return;
-
+    if (!confirmed || isArchiving) return;
+    setIsArchiving(true);
+    setActionError("");
     try {
       await archiveCompetency(id);
-      loadDetail();
+      await loadDetail();
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to archive');
+      setActionError(
+        err.response?.data?.message || "Failed to archive competency.",
+      );
+    } finally {
+      setIsArchiving(false);
     }
   }
 
@@ -57,7 +74,10 @@ export default function CompetencyDetail() {
   if (error || !competency) {
     return (
       <HrLayout>
-        <ErrorState message={error || 'Competency not found'} onRetry={loadDetail} />
+        <ErrorState
+          message={error || "Competency not found"}
+          onRetry={loadDetail}
+        />
       </HrLayout>
     );
   }
@@ -68,14 +88,24 @@ export default function CompetencyDetail() {
     <HrLayout>
       {dialog}
       <div className="space-y-6">
+        {actionError && (
+          <p className="text-sm text-burgundy" role="alert">
+            {actionError}
+          </p>
+        )}
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <Link to="/hr/competencies" className="text-xs font-medium text-gold hover:underline">
+            <Link
+              to="/hr/competencies"
+              className="text-xs font-medium text-gold hover:underline"
+            >
               &larr; Back to Competencies
             </Link>
             <div className="flex items-center gap-3 mt-1">
-              <h1 className="text-2xl font-bold text-espresso">{competency.name}</h1>
+              <h1 className="text-2xl font-bold text-espresso">
+                {competency.name}
+              </h1>
               <StatusBadge status={competency.status} />
               {competency.category && (
                 <span className="text-xs px-2.5 py-1 rounded-lg bg-cream border border-border-warm font-medium text-espresso/70">
@@ -84,15 +114,16 @@ export default function CompetencyDetail() {
               )}
             </div>
             <p className="text-sm text-espresso/60 mt-1 max-w-2xl">
-              {competency.description || 'No description provided.'}
+              {competency.description || "No description provided."}
             </p>
           </div>
 
           <div className="flex items-center gap-2">
-            {competency.status !== 'ARCHIVED' && (
+            {competency.status !== "ARCHIVED" && (
               <button
                 type="button"
                 onClick={handleArchive}
+                disabled={isArchiving}
                 className="px-3.5 py-2 rounded-xl border border-border-warm text-sm font-medium text-espresso/70 hover:text-burgundy hover:bg-burgundy/10 transition"
               >
                 Archive
@@ -103,7 +134,9 @@ export default function CompetencyDetail() {
 
         {/* Levels Grid */}
         <div className="bg-white rounded-2xl border border-border-warm p-6 shadow-sm space-y-4">
-          <h2 className="text-base font-semibold text-espresso">Proficiency Standards & Score Bands</h2>
+          <h2 className="text-base font-semibold text-espresso">
+            Proficiency Standards & Score Bands
+          </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {levels?.map((lvl) => (
               <div
@@ -111,13 +144,15 @@ export default function CompetencyDetail() {
                 className="p-4 rounded-xl border border-border-warm/70 bg-cream/20 space-y-2"
               >
                 <div className="flex items-center justify-between">
-                  <span className="font-bold text-sm text-espresso">{lvl.level}</span>
+                  <span className="font-bold text-sm text-espresso">
+                    {lvl.level}
+                  </span>
                   <span className="text-xs font-mono px-2 py-0.5 rounded bg-white border border-border-warm font-semibold text-espresso/80">
                     {lvl.minScore}–{lvl.maxScore}%
                   </span>
                 </div>
                 <p className="text-xs text-espresso/60 leading-relaxed">
-                  {lvl.description || 'No description defined.'}
+                  {lvl.description || "No description defined."}
                 </p>
               </div>
             ))}
@@ -137,12 +172,16 @@ export default function CompetencyDetail() {
 
             {!courseCompetencies || courseCompetencies.length === 0 ? (
               <p className="text-xs text-espresso/40 py-4 text-center">
-                No courses linked yet. Assign this competency from course settings.
+                No courses linked yet. Assign this competency from course
+                settings.
               </p>
             ) : (
               <div className="divide-y divide-border-warm/60">
                 {courseCompetencies.map((cc) => (
-                  <div key={cc.id} className="py-3 flex items-center justify-between gap-2">
+                  <div
+                    key={cc.id}
+                    className="py-3 flex items-center justify-between gap-2"
+                  >
                     <div>
                       <Link
                         to={`/hr/courses/${cc.course.id}`}
@@ -151,7 +190,10 @@ export default function CompetencyDetail() {
                         {cc.course.title}
                       </Link>
                       <span className="text-[11px] text-espresso/50">
-                        Target: <span className="font-semibold text-espresso">{cc.targetLevel}</span>
+                        Target:{" "}
+                        <span className="font-semibold text-espresso">
+                          {cc.targetLevel}
+                        </span>
                       </span>
                     </div>
                   </div>
@@ -191,7 +233,7 @@ export default function CompetencyDetail() {
                           {ec.user.name}
                         </td>
                         <td className="px-6 py-3.5 text-xs text-espresso/60">
-                          {ec.user.department?.name || 'General'}
+                          {ec.user.department?.name || "General"}
                         </td>
                         <td className="px-6 py-3.5">
                           <StatusBadge status={ec.level} />
@@ -214,4 +256,3 @@ export default function CompetencyDetail() {
     </HrLayout>
   );
 }
-

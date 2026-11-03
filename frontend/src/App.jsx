@@ -7,7 +7,9 @@ import RegisterCompany from './pages/auth/RegisterCompany';
 import ForgotPassword from './pages/auth/ForgotPassword';
 import ResetPassword from './pages/auth/ResetPassword';
 import VerifyEmail from './pages/auth/VerifyEmail';
-import DashboardPlaceholder from './pages/DashboardPlaceholder';
+import SuperAdminDashboard from './pages/admin/SuperAdminDashboard';
+import PlatformUserManagement from './pages/admin/PlatformUserManagement';
+import PlatformCompanies from './pages/admin/PlatformCompanies';
 import InstructorDashboard from './pages/instructor/InstructorDashboard';
 import InstructorCourses from './pages/instructor/InstructorCourses';
 import InstructorCourseDetail from './pages/instructor/InstructorCourseDetail';
@@ -85,15 +87,10 @@ export default function App() {
       {/* Public certificate verification */}
       <Route path="/verify/:verificationCode" element={<CertificateVerification />} />
 
-      {/* Super Admin — platform-level UI is a future enhancement */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute allowedRoles={['SUPER_ADMIN']}>
-            <DashboardPlaceholder title="Super Admin Dashboard" />
-          </ProtectedRoute>
-        }
-      />
+      {/* Super Admin — platform-wide account and company controls */}
+      <Route path="/admin" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><SuperAdminDashboard /></ProtectedRoute>} />
+      <Route path="/admin/users" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><PlatformUserManagement /></ProtectedRoute>} />
+      <Route path="/admin/companies" element={<ProtectedRoute allowedRoles={['SUPER_ADMIN']}><PlatformCompanies /></ProtectedRoute>} />
 
       {/* Instructor workspace */}
       <Route path="/instructor" element={<ProtectedRoute allowedRoles={['INSTRUCTOR']}><InstructorDashboard /></ProtectedRoute>} />

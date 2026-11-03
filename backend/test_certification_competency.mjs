@@ -220,8 +220,8 @@ async function runTests() {
   const myCerts = await certificateService.listMyCertificates(actingEmp);
   assert(myCerts.length >= 1, 'Employee can query own issued certificates');
 
-  const certDetail = await certificateService.getCertificate(actingEmp, certRow.id);
-  assert(certDetail.certificateNumber === certRow.certificateNumber, 'Employee can load own certificate detail');
+  const employeeCertificateDetail = await certificateService.getCertificate(actingEmp, certRow.id);
+  assert(employeeCertificateDetail.certificateNumber === certRow.certificateNumber, 'Employee can load own certificate detail');
 
   // Clean up test course competency mapping
   await courseCompetencyService.removeCourseCompetency(actingHr, course.id, createdComp.id);

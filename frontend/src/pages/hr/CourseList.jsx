@@ -38,7 +38,7 @@ export default function CourseList() {
         </div>
         <Link
           to="/hr/courses/create"
-          className="inline-flex items-center px-4 py-2.5 rounded-xl bg-espresso text-cream text-sm font-medium hover:bg-espresso/90 transition"
+          className="inline-flex items-center px-4 py-2.5 rounded-xl bg-espresso text-cream text-sm font-medium hover:bg-espresso/90 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gold focus-visible:ring-offset-2"
         >
           + Create Course
         </Link>
@@ -52,7 +52,8 @@ export default function CourseList() {
         <FilterDropdown label="Status" value={status} onChange={(v) => { setStatus(v); setPage(1); }} options={STATUSES} />
       </div>
 
-      <div className="mt-6">
+      <div className="mt-6" aria-busy={query.isFetching}>
+        {query.isFetching && query.isSuccess && <p className="mb-3 text-xs text-espresso/50" role="status">Updating courses...</p>}
         {query.isLoading && <LoadingState label="Loading courses..." />}
         {query.isError && <ErrorState message="Unable to load courses." onRetry={query.refetch} />}
         {query.isSuccess && query.data.data.length === 0 && (

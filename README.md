@@ -28,12 +28,26 @@ cp .env.example .env
 # Set DATABASE_URL and generate JWT_ACCESS_SECRET and JWT_REFRESH_SECRET locally.
 npm install
 npx prisma generate
-npx prisma migrate dev
-npm run db:seed
+npx prisma migrate deploy
+npm run db:init-roles
 npm run dev
 ```
 
+Database initialization is deliberately separate:
+
+1. Apply schema migrations with `npx prisma migrate deploy` (use `npx prisma migrate dev` for local schema development).
+2. Initialize only the four required system roles with `npm run db:init-roles`. This command is safe to repeat and creates no users or other business data.
+3. Optionally, for a disposable local development database only, run `npm run db:seed` to create demo companies, accounts, and learning data. Never run the demo seed against a production database.
+
 The API runs on `http://localhost:5000`. Use `docs/development-auth.md` for local development account guidance. Do not commit `.env` files or credentials.
+
+Database setup is intentionally split into independent steps:
+
+1. Apply existing migrations (`npx prisma migrate deploy`; use `npx prisma migrate dev` only when actively developing schema changes).
+2. Run `npm run db:init-roles` to idempotently create or update only the four system role records required by the API. It does not create accounts or company data.
+3. Optionally, on a disposable development database only, run `npm run db:seed` to populate demo companies, users, and sample learning records. Demo seeding is not required to initialize roles or run public company registration and must not be run against production.
+
+The API does not seed data during startup.
 
 ### Frontend
 ```bash

@@ -55,6 +55,8 @@ model Company {
   industry         String?
   subscriptionPlan SubscriptionPlan @default(FREE)
   status           CompanyStatus    @default(ACTIVE)
+  /// Incremented only when company access status changes; embedded in tenant JWTs.
+  securityVersion  Int              @default(0)
 
   /// Soft delete — companies are deactivated (status), never hard-deleted
   /// once they have any real data. See onDelete: Restrict on children.

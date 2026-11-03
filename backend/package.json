@@ -15,10 +15,18 @@
     "db:migrate": "prisma migrate dev",
     "db:seed": "node prisma/seed.js",
     "db:studio": "prisma studio",
+    "db:init-roles": "node prisma/init-system-roles.js",
     "db:restore-admin": "node prisma/restore-dev-admin.js",
     "db:reset": "prisma migrate reset",
     "test:activity:validation": "node test_activity_validation.mjs",
-    "test:activity": "node test_activity_features.mjs"
+    "test:activity": "node test_activity_features.mjs",
+    "test:auth:validation": "node test_auth_registration_validation.mjs",
+    "test:system-role-init": "node test_system_role_initialization.mjs",
+    "test:reporting": "node --test test_reporting_aggregation.mjs test_reporting_contract.mjs",
+    "test:platform-admin": "node --test test_platform_admin_contract.mjs",
+    "test:security-hardening": "node --test test_security_hardening_contract.mjs",
+    "test:security-hardening:integration": "node test_security_hardening.integration.mjs",
+    "test": "node --test test_*.mjs"
   },
   "prisma": {
     "seed": "node prisma/seed.js"

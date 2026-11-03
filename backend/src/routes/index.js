@@ -22,10 +22,12 @@ import announcementRoutes from './announcement.routes.js';
 import activityLogRoutes from './activityLog.routes.js';
 import instructorRoutes from './instructor.routes.js';
 import learningPathRoutes from './learningPath.routes.js';
+import platformAdminRoutes from './platformAdmin.routes.js';
 
 const router = Router();
 
 router.use('/health', healthRoutes);
+router.use('/admin', platformAdminRoutes);
 router.use('/auth', authRoutes);
 router.use('/employees', employeeRoutes);
 router.use('/departments', departmentRoutes);

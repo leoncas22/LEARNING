@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import HrLayout from '../../layouts/HrLayout';
-import { listCertificates, revokeCertificate } from '../../services/certificateService';
+import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import HrLayout from "../../layouts/HrLayout";
+import {
+  listCertificates,
+  revokeCertificate,
+} from "../../services/certificateService";
 import {
   StatusBadge,
   SearchInput,
@@ -10,26 +13,31 @@ import {
   LoadingState,
   EmptyState,
   ErrorState,
-} from '../../components/ui/Primitives';
+} from "../../components/ui/Primitives";
 
 const STATUS_OPTIONS = [
-  { value: 'ACTIVE', label: 'Active' },
-  { value: 'EXPIRED', label: 'Expired' },
-  { value: 'REVOKED', label: 'Revoked' },
+  { value: "ACTIVE", label: "Active" },
+  { value: "EXPIRED", label: "Expired" },
+  { value: "REVOKED", label: "Revoked" },
 ];
 
 export default function Certificates() {
   const [certificates, setCertificates] = useState([]);
-  const [pagination, setPagination] = useState({ page: 1, totalPages: 1, total: 0 });
-  const [search, setSearch] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [pagination, setPagination] = useState({
+    page: 1,
+    totalPages: 1,
+    total: 0,
+  });
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Revocation modal state
   const [revokingCert, setRevokingCert] = useState(null);
-  const [revocationReason, setRevocationReason] = useState('');
+  const [revocationReason, setRevocationReason] = useState("");
   const [isSubmittingRevoke, setIsSubmittingRevoke] = useState(false);
+  const [revokeError, setRevokeError] = useState("");
 
   async function loadCertificates(page = 1) {
     setIsLoading(true);
@@ -44,7 +52,7 @@ export default function Certificates() {
       setCertificates(res.data);
       setPagination(res.pagination);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to load certificates');
+      setError(err.response?.data?.message || "Failed to load certificates");
     } finally {
       setIsLoading(false);
     }
@@ -59,16 +67,20 @@ export default function Certificates() {
 
   async function handleConfirmRevoke(e) {
     e.preventDefault();
-    if (!revokingCert) return;
+    if (!revokingCert || isSubmittingRevoke) return;
 
+    setRevokeError("");
     setIsSubmittingRevoke(true);
     try {
       await revokeCertificate(revokingCert.id, revocationReason);
       setRevokingCert(null);
-      setRevocationReason('');
-      loadCertificates(pagination.page);
+      setRevocationReason("");
+      setRevokeError("");
+      await loadCertificates(pagination.page);
     } catch (err) {
-      alert(err.response?.data?.message || 'Failed to revoke certificate');
+      setRevokeError(
+        err.response?.data?.message || "Failed to revoke certificate.",
+      );
     } finally {
       setIsSubmittingRevoke(false);
     }
@@ -80,7 +92,9 @@ export default function Certificates() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl font-bold text-espresso">Certificates Registry</h1>
+            <h1 className="text-2xl font-bold text-espresso">
+              Certificates Registry
+            </h1>
             <p className="text-sm text-espresso/60 mt-1">
               View, verify, and govern all awarded employee certificates
             </p>
@@ -108,11 +122,18 @@ export default function Certificates() {
         {isLoading ? (
           <LoadingState label="Loading certificate registry..." />
         ) : error ? (
-          <ErrorState message={error} onRetry={() => loadCertificates(pagination.page)} />
+          <ErrorState
+            message={error}
+            onRetry={() => loadCertificates(pagination.page)}
+          />
         ) : certificates.length === 0 ? (
           <EmptyState
             title="No certificates found"
-            description={search || statusFilter ? 'Try clearing your filters' : 'Certificates are issued automatically as employees fulfill requirements.'}
+            description={
+              search || statusFilter
+                ? "Try clearing your filters"
+                : "Certificates are issued automatically as employees fulfill requirements."
+            }
           />
         ) : (
           <div className="bg-white rounded-2xl border border-border-warm overflow-hidden shadow-sm">
@@ -122,24 +143,32 @@ export default function Certificates() {
                   <tr>
                     <th className="px-6 py-3 font-semibold">Employee</th>
                     <th className="px-6 py-3 font-semibold">Certification</th>
-                    <th className="px-6 py-3 font-semibold">Certificate Number</th>
+                    <th className="px-6 py-3 font-semibold">
+                      Certificate Number
+                    </th>
                     <th className="px-6 py-3 font-semibold">Issued Date</th>
                     <th className="px-6 py-3 font-semibold">Expiration</th>
                     <th className="px-6 py-3 font-semibold">Status</th>
-                    <th className="px-6 py-3 font-semibold text-right">Actions</th>
+                    <th className="px-6 py-3 font-semibold text-right">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-border-warm/60">
                   {certificates.map((cert) => (
                     <tr key={cert.id} className="hover:bg-cream/20 transition">
                       <td className="px-6 py-4">
-                        <div className="font-medium text-espresso">{cert.user.name}</div>
+                        <div className="font-medium text-espresso">
+                          {cert.user.name}
+                        </div>
                         <div className="text-xs text-espresso/50">
-                          {cert.user.department?.name || 'General'}
+                          {cert.user.department?.name || "General"}
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="font-medium text-espresso">{cert.certification.title}</div>
+                        <div className="font-medium text-espresso">
+                          {cert.certification.title}
+                        </div>
                       </td>
                       <td className="px-6 py-4 font-mono text-xs text-espresso/80">
                         {cert.certificateNumber}
@@ -148,7 +177,9 @@ export default function Certificates() {
                         {new Date(cert.issuedAt).toLocaleDateString()}
                       </td>
                       <td className="px-6 py-4 text-xs text-espresso/70">
-                        {cert.expiresAt ? new Date(cert.expiresAt).toLocaleDateString() : 'Never'}
+                        {cert.expiresAt
+                          ? new Date(cert.expiresAt).toLocaleDateString()
+                          : "Never"}
                       </td>
                       <td className="px-6 py-4">
                         <StatusBadge status={cert.status} />
@@ -162,12 +193,13 @@ export default function Certificates() {
                         >
                           Verify
                         </Link>
-                        {cert.status === 'ACTIVE' && (
+                        {cert.status === "ACTIVE" && (
                           <button
                             type="button"
                             onClick={() => {
                               setRevokingCert(cert);
-                              setRevocationReason('');
+                              setRevocationReason("");
+                              setRevokeError("");
                             }}
                             className="text-xs font-medium text-espresso/50 hover:text-burgundy px-2.5 py-1.5 rounded-lg hover:bg-burgundy/10 transition"
                           >
@@ -194,18 +226,38 @@ export default function Certificates() {
         {revokingCert && (
           <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-espresso/40 px-4"
-            role="dialog"
-            aria-modal="true"
+            onMouseDown={(event) => {
+              if (event.target === event.currentTarget && !isSubmittingRevoke)
+                setRevokingCert(null);
+            }}
+            role="presentation"
           >
-            <div className="bg-white rounded-2xl border border-border-warm shadow-xl max-w-md w-full p-6 space-y-4">
-              <h2 className="text-lg font-bold text-espresso">Revoke Certificate</h2>
+            <div
+              className="bg-white rounded-2xl border border-border-warm shadow-xl max-w-md w-full p-6 space-y-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="revoke-certificate-title"
+            >
+              <h2
+                id="revoke-certificate-title"
+                className="text-lg font-bold text-espresso"
+              >
+                Revoke Certificate
+              </h2>
               <p className="text-sm text-espresso/70">
-                Are you sure you want to revoke certificate{' '}
-                <span className="font-semibold text-espresso">{revokingCert.certificateNumber}</span> for{' '}
-                <span className="font-semibold text-espresso">{revokingCert.user.name}</span>?
+                Are you sure you want to revoke certificate{" "}
+                <span className="font-semibold text-espresso">
+                  {revokingCert.certificateNumber}
+                </span>{" "}
+                for{" "}
+                <span className="font-semibold text-espresso">
+                  {revokingCert.user.name}
+                </span>
+                ?
               </p>
               <p className="text-xs text-espresso/50">
-                This will mark the credential as Revoked permanently in public verification records. It will not be deleted.
+                This will mark the credential as Revoked permanently in public
+                verification records. It will not be deleted.
               </p>
 
               <form onSubmit={handleConfirmRevoke} className="space-y-4 pt-1">
@@ -222,6 +274,11 @@ export default function Certificates() {
                   />
                 </div>
 
+                {revokeError && (
+                  <p className="text-sm text-burgundy" role="alert">
+                    {revokeError}
+                  </p>
+                )}
                 <div className="flex justify-end gap-3 pt-2">
                   <button
                     type="button"
@@ -236,7 +293,7 @@ export default function Certificates() {
                     disabled={isSubmittingRevoke}
                     className="px-4 py-2 rounded-xl bg-burgundy text-white text-sm font-medium hover:bg-burgundy/90 transition"
                   >
-                    {isSubmittingRevoke ? 'Revoking...' : 'Confirm Revocation'}
+                    {isSubmittingRevoke ? "Revoking..." : "Confirm Revocation"}
                   </button>
                 </div>
               </form>
@@ -247,4 +304,3 @@ export default function Certificates() {
     </HrLayout>
   );
 }
-

@@ -20,6 +20,9 @@ export function generateSecureToken() {
 }
 
 export function hashToken(rawToken) {
+  if (!authConfig.jwt.refreshSecret) {
+    throw new Error('Refresh-token operations are unavailable: JWT_REFRESH_SECRET is not configured');
+  }
   return crypto.createHmac('sha256', authConfig.jwt.refreshSecret).update(rawToken).digest('hex');
 }
 

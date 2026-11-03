@@ -1,18 +1,19 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import EmployeeLayout from '../../layouts/EmployeeLayout';
-import QuizTimer from '../../components/QuizTimer';
-import QuestionNavigator from '../../components/QuestionNavigator';
-import QuestionRenderer from '../../components/QuestionRenderer';
-import { Modal } from '../../components/ui/Modal';
-import { LoadingState, ErrorState } from '../../components/ui/Primitives';
-import * as attemptService from '../../services/quizAttemptService';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import EmployeeLayout from "../../layouts/EmployeeLayout";
+import QuizTimer from "../../components/QuizTimer";
+import QuestionNavigator from "../../components/QuestionNavigator";
+import QuestionRenderer from "../../components/QuestionRenderer";
+import { Modal } from "../../components/ui/Modal";
+import { LoadingState, ErrorState } from "../../components/ui/Primitives";
+import * as attemptService from "../../services/quizAttemptService";
 
 function countAnswered(questions) {
   return questions.filter((q) => {
     if (!q.myAnswer) return false;
-    if (q.type === 'SHORT_ANSWER') return Boolean(q.myAnswer.answerText?.trim());
+    if (q.type === "SHORT_ANSWER")
+      return Boolean(q.myAnswer.answerText?.trim());
     return (q.myAnswer.selectedOptionIds || []).length > 0;
   }).length;
 }
@@ -23,15 +24,19 @@ export default function QuizTakingPage() {
   const queryClient = useQueryClient();
 
   const [attempt, setAttempt] = useState(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [saveStatus, setSaveStatus] = useState(''); // '' | 'saving' | 'saved'
+  const [saveStatus, setSaveStatus] = useState(""); // '' | 'saving' | 'saved'
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const saveTimeoutRef = useRef(null);
+  const pendingSavesRef = useRef(new Map());
+  const inFlightSaveRef = useRef(null);
+  const saveErrorRef = useRef(null);
+  const latestAttemptRef = useRef(null);
 
   const startQuery = useQuery({
-    queryKey: ['quiz-attempt-start', quizId],
+    queryKey: ["quiz-attempt-start", quizId],
     queryFn: () => attemptService.startAttempt(quizId),
     retry: false,
   });
@@ -40,15 +45,27 @@ export default function QuizTakingPage() {
     if (startQuery.data) setAttempt(startQuery.data);
   }, [startQuery.data]);
 
+  useEffect(() => {
+    latestAttemptRef.current = attempt;
+  }, [attempt]);
+
+  useEffect(() => () => {
+    if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
+  }, []);
+
   const submitMutation = useMutation({
     mutationFn: () => attemptService.submitAttempt(attempt.id),
     onSuccess: (result) => {
-      queryClient.invalidateQueries({ queryKey: ['my-quizzes'] });
-      queryClient.invalidateQueries({ queryKey: ['my-quiz-history'] });
-      navigate(`/employee/quizzes/${result.attemptId}/result`, { replace: true });
+      queryClient.invalidateQueries({ queryKey: ["my-quizzes"] });
+      queryClient.invalidateQueries({ queryKey: ["my-quiz-history"] });
+      navigate(`/employee/quizzes/${result.attemptId}/result`, {
+        replace: true,
+      });
     },
     onError: (err) => {
-      setError(err.response?.data?.message || 'Unable to submit. Please try again.');
+      setError(
+        err.response?.data?.message || "Unable to submit. Please try again.",
+      );
       setSubmitting(false);
     },
   });
@@ -56,42 +73,125 @@ export default function QuizTakingPage() {
   const updateAnswerLocally = useCallback((questionId, value) => {
     setAttempt((prev) => ({
       ...prev,
-      questions: prev.questions.map((q) => (q.id === questionId ? { ...q, myAnswer: value } : q)),
+      questions: prev.questions.map((q) =>
+        q.id === questionId ? { ...q, myAnswer: value } : q,
+      ),
     }));
   }, []);
 
   function handleAnswerChange(questionId, value) {
+    if (submitting) return;
     updateAnswerLocally(questionId, value);
-    setSaveStatus('saving');
+    pendingSavesRef.current.set(questionId, value);
+    saveErrorRef.current = null;
+    setSaveStatus("saving");
     if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        await attemptService.saveAnswer(attempt.id, questionId, value);
-        setSaveStatus('saved');
-      } catch {
-        setSaveStatus('');
-      }
+    saveTimeoutRef.current = setTimeout(() => {
+      flushPendingSave().catch(() => {});
     }, 600);
   }
 
-  function handleExpire() {
-    if (!submitting) {
-      setSubmitting(true);
+  async function flushPendingSave() {
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+      saveTimeoutRef.current = null;
+    }
+    if (inFlightSaveRef.current) {
+      try {
+        await inFlightSaveRef.current;
+      } catch (requestError) {
+        const saveError = saveErrorRef.current || requestError;
+        saveErrorRef.current = null;
+        setSaveStatus("error");
+        setError(saveError.response?.data?.message || "Unable to save your answer. Please try again.");
+        throw saveError;
+      }
+      if (saveErrorRef.current) {
+        const saveError = saveErrorRef.current;
+        saveErrorRef.current = null;
+        setSaveStatus("error");
+        setError(saveError.response?.data?.message || "Unable to save your answer. Please try again.");
+        throw saveError;
+      }
+      if (pendingSavesRef.current.size === 0) return;
+      return flushPendingSave();
+    }
+    if (pendingSavesRef.current.size === 0) return;
+    const activeAttempt = latestAttemptRef.current;
+    if (!activeAttempt) {
+      const unavailable = new Error("Attempt is not available");
+      setError("Your quiz attempt is still loading. Please try submitting again.");
+      throw unavailable;
+    }
+
+    setSaveStatus("saving");
+    const saveBatch = async () => {
+      while (pendingSavesRef.current.size > 0) {
+        const batch = [...pendingSavesRef.current.entries()];
+        const results = await Promise.allSettled(batch.map(async ([questionId, answer]) => {
+          await attemptService.saveAnswer(activeAttempt.id, questionId, answer || {});
+          if (pendingSavesRef.current.get(questionId) === answer) {
+            pendingSavesRef.current.delete(questionId);
+          }
+        }));
+        const rejected = results.find((result) => result.status === "rejected");
+        if (rejected) {
+          saveErrorRef.current = rejected.reason;
+          pendingSavesRef.current.clear();
+          throw rejected.reason;
+        }
+      }
+    };
+    const inFlight = saveBatch();
+    inFlightSaveRef.current = inFlight;
+    try {
+      await inFlight;
+      if (saveErrorRef.current) {
+        const saveError = saveErrorRef.current;
+        saveErrorRef.current = null;
+        setSaveStatus("error");
+        setError(saveError.response?.data?.message || "Unable to save your answer. Please try again.");
+        throw saveError;
+      }
+      setError("");
+      setSaveStatus("saved");
+    } catch (saveError) {
+      setSaveStatus("error");
+      setError(saveError.response?.data?.message || "Unable to save your answer. Please try again.");
+      throw saveError;
+    } finally {
+      if (inFlightSaveRef.current === inFlight) inFlightSaveRef.current = null;
+    }
+  }
+
+  async function handleExpire() {
+    if (submitting) return;
+    setSubmitting(true);
+    try {
+      await flushPendingSave();
       submitMutation.mutate();
+    } catch {
+      setSubmitting(false);
     }
   }
 
   function handleSubmitClick() {
-    setConfirmOpen(true);
+    if (!submitting) setConfirmOpen(true);
   }
 
-  function handleConfirmSubmit() {
+  async function handleConfirmSubmit() {
+    if (submitting) return;
     setConfirmOpen(false);
     setSubmitting(true);
-    submitMutation.mutate();
+    try {
+      await flushPendingSave();
+      submitMutation.mutate();
+    } catch {
+      setSubmitting(false);
+    }
   }
 
-  if (startQuery.isLoading || !attempt) {
+  if (startQuery.isLoading) {
     return (
       <EmployeeLayout>
         <LoadingState label="Preparing your quiz..." />
@@ -99,7 +199,8 @@ export default function QuizTakingPage() {
     );
   }
   if (startQuery.isError) {
-    const message = startQuery.error?.response?.data?.message || 'Unable to load this quiz.';
+    const message =
+      startQuery.error?.response?.data?.message || "Unable to load this quiz.";
     return (
       <EmployeeLayout>
         <ErrorState message={message} onRetry={startQuery.refetch} />
@@ -107,7 +208,15 @@ export default function QuizTakingPage() {
     );
   }
 
-  if (attempt.status !== 'IN_PROGRESS') {
+  if (!attempt) {
+    return (
+      <EmployeeLayout>
+        <ErrorState message="The quiz attempt could not be prepared. Please try again." onRetry={startQuery.refetch} />
+      </EmployeeLayout>
+    );
+  }
+
+  if (attempt.status !== "IN_PROGRESS") {
     // The attempt got finalized (e.g. expired) while we were loading —
     // send the learner straight to their result rather than a dead page.
     navigate(`/employee/quizzes/${attempt.id}/result`, { replace: true });
@@ -123,7 +232,9 @@ export default function QuizTakingPage() {
     <EmployeeLayout>
       <div className="flex items-center justify-between flex-wrap gap-3 mb-4">
         <div>
-          <h1 className="text-lg font-semibold text-espresso">{attempt.quiz.title}</h1>
+          <h1 className="text-lg font-semibold text-espresso">
+            {attempt.quiz.title}
+          </h1>
           <p className="text-sm text-espresso/50">
             Question {currentIndex + 1} of {questions.length}
           </p>
@@ -131,7 +242,11 @@ export default function QuizTakingPage() {
         <QuizTimer deadline={attempt.deadline} onExpire={handleExpire} />
       </div>
 
-      {error && <div className="mb-4 rounded-xl border border-burgundy/20 bg-burgundy/5 text-burgundy text-sm px-4 py-3">{error}</div>}
+      {error && (
+        <div className="mb-4 rounded-xl border border-burgundy/20 bg-burgundy/5 text-burgundy text-sm px-4 py-3" role="alert">
+          {error}
+        </div>
+      )}
 
       {attempt.quiz.instructions && (
         <div className="mb-4 rounded-xl border border-border-warm bg-cream/40 px-4 py-3 text-sm text-espresso/70">
@@ -141,13 +256,18 @@ export default function QuizTakingPage() {
 
       <div className="bg-white border border-border-warm rounded-2xl p-6">
         <div className="flex items-center justify-between mb-4">
-          <p className="text-xs text-espresso/40">{currentQuestion.points} points</p>
-          <span className="text-xs text-espresso/40 h-4">
-            {saveStatus === 'saving' && 'Saving...'}
-            {saveStatus === 'saved' && 'Saved'}
+          <p className="text-xs text-espresso/40">
+            {currentQuestion.points} points
+          </p>
+          <span className="text-xs text-espresso/40 h-4" role="status" aria-live="polite">
+            {saveStatus === "saving" && "Saving..."}
+            {saveStatus === "saved" && "Saved"}
+            {saveStatus === "error" && "Not saved"}
           </span>
         </div>
-        <p className="text-base text-espresso font-medium mb-5">{currentQuestion.question}</p>
+        <p className="text-base text-espresso font-medium mb-5">
+          {currentQuestion.question}
+        </p>
 
         <QuestionRenderer
           question={currentQuestion}
@@ -167,6 +287,7 @@ export default function QuizTakingPage() {
           {currentIndex < questions.length - 1 ? (
             <button
               type="button"
+              disabled={submitting}
               onClick={() => setCurrentIndex((i) => i + 1)}
               className="px-4 py-2 rounded-xl bg-espresso text-cream text-sm font-medium hover:bg-espresso/90 transition"
             >
@@ -186,30 +307,47 @@ export default function QuizTakingPage() {
       </div>
 
       <div className="mt-6">
-        <QuestionNavigator questions={questions} currentIndex={currentIndex} onSelect={setCurrentIndex} />
+        <QuestionNavigator
+          questions={questions}
+          currentIndex={currentIndex}
+          onSelect={setCurrentIndex}
+        />
       </div>
 
       {currentIndex < questions.length - 1 && (
         <div className="text-center mt-6">
-          <button type="button" onClick={handleSubmitClick} disabled={submitting} className="text-sm text-gold hover:underline font-medium">
+          <button
+            type="button"
+            onClick={handleSubmitClick}
+            disabled={submitting}
+            className="text-sm text-gold hover:underline font-medium"
+          >
             Submit Quiz
           </button>
         </div>
       )}
 
-      <Modal open={confirmOpen} title="Submit your quiz?" onClose={() => setConfirmOpen(false)}>
+      <Modal
+        open={confirmOpen}
+        title="Submit your quiz?"
+        onClose={() => {
+          if (!submitting) setConfirmOpen(false);
+        }}
+      >
         <p className="text-sm text-espresso/70">
           You have answered {answeredCount} of {questions.length} questions.
         </p>
         {unansweredCount > 0 && (
           <p className="text-sm text-burgundy mt-2">
-            You still have {unansweredCount} unanswered question{unansweredCount > 1 ? 's' : ''}.
+            You still have {unansweredCount} unanswered question
+            {unansweredCount > 1 ? "s" : ""}.
           </p>
         )}
         <div className="flex justify-end gap-3 mt-6">
           <button
             type="button"
             onClick={() => setConfirmOpen(false)}
+            disabled={submitting}
             className="px-4 py-2 rounded-xl border border-border-warm text-sm font-medium text-espresso hover:bg-cream transition"
           >
             Continue Quiz
@@ -217,9 +355,10 @@ export default function QuizTakingPage() {
           <button
             type="button"
             onClick={handleConfirmSubmit}
-            className="px-4 py-2 rounded-xl bg-espresso text-cream text-sm font-medium hover:bg-espresso/90 transition"
+            disabled={submitting}
+            className="px-4 py-2 rounded-xl bg-espresso text-cream text-sm font-medium hover:bg-espresso/90 transition disabled:opacity-50"
           >
-            Submit Quiz
+            {submitting ? "Submitting..." : "Submit Quiz"}
           </button>
         </div>
       </Modal>

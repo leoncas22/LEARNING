@@ -12,6 +12,7 @@ export default function CoursePage() {
   const queryClient = useQueryClient();
   const [selectedLessonId, setSelectedLessonId] = useState(null);
   const [navOpen, setNavOpen] = useState(false);
+  const [actionError, setActionError] = useState('');
 
   const query = useQuery({
     queryKey: ['my-course', id],
@@ -27,9 +28,12 @@ export default function CoursePage() {
   const completeMutation = useMutation({
     mutationFn: (lessonId) => courseService.completeLesson(lessonId),
     onSuccess: () => {
+      setActionError('');
       queryClient.invalidateQueries({ queryKey: ['my-course', id] });
       queryClient.invalidateQueries({ queryKey: ['my-courses'] });
+      queryClient.invalidateQueries({ queryKey: ['my-learning-summary'] });
     },
+    onError: (error) => setActionError(error.response?.data?.message || 'Unable to save lesson progress. Please try again.'),
   });
 
   if (query.isLoading) {
@@ -61,8 +65,12 @@ export default function CoursePage() {
   }
 
   async function handleMarkComplete() {
-    await completeMutation.mutateAsync(selectedLessonId);
-    if (nextLesson) setSelectedLessonId(nextLesson.id);
+    try {
+      await completeMutation.mutateAsync(selectedLessonId);
+      if (nextLesson) setSelectedLessonId(nextLesson.id);
+    } catch {
+      // Mutation feedback stays on the page; keep the current lesson selected.
+    }
   }
 
   return (
@@ -120,6 +128,7 @@ export default function CoursePage() {
 
         {/* Lesson content */}
         <div className="flex-1 min-w-0 bg-white border border-border-warm rounded-2xl p-6">
+          {actionError && <p className="mb-4 rounded-xl border-burgundy/20 bg-burgundy/5 px-4 py-3 text-sm text-burgundy" role="alert">{actionError}</p>}
           {courseCompleted ? (
             <div className="text-center py-16">
               <p className="text-lg font-semibold text-espresso">Course Completed 🎉</p>

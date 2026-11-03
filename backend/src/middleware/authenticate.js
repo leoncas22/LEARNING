@@ -1,6 +1,7 @@
 import prisma from '../config/db.js';
 import { verifyAccessToken } from '../utils/jwt.js';
 import { AppError, asyncHandler } from './errorHandler.js';
+import env from '../config/env.js';
 
 /**
  * Populates req.user from a verified access token.
@@ -14,6 +15,10 @@ import { AppError, asyncHandler } from './errorHandler.js';
  * downstream handler. Nothing in req.body is ever trusted for this.
  */
 export const authenticate = asyncHandler(async (req, res, next) => {
+  if (!env.jwt.accessSecret) {
+    throw new AppError('Authentication is unavailable: JWT_ACCESS_SECRET is not configured', 503, 'AUTH_CONFIGURATION_ERROR');
+  }
+
   const header = req.headers.authorization || '';
   const [scheme, token] = header.split(' ');
 
@@ -34,7 +39,7 @@ export const authenticate = asyncHandler(async (req, res, next) => {
       departmentId: true,
       deletedAt: true,
       role: { select: { name: true } },
-      company: { select: { id: true, status: true } },
+      company: { select: { id: true, status: true, securityVersion: true } },
     },
   });
 
@@ -44,10 +49,17 @@ export const authenticate = asyncHandler(async (req, res, next) => {
   if (user.status !== 'ACTIVE') {
     throw new AppError('Account is not active', 401, 'ACCOUNT_INACTIVE');
   }
-  // A company-scoped user (i.e. not SUPER_ADMIN) whose company was
-  // suspended loses access immediately, mid-token-lifetime.
-  if (user.company && user.company.status === 'SUSPENDED') {
-    throw new AppError('Company account is suspended', 401, 'COMPANY_SUSPENDED');
+  // A company-scoped user loses access immediately when the tenant is
+  // inactive or suspended, even if the access token has not expired.
+  if (user.company && user.company.status !== 'ACTIVE' && user.role.name !== 'SUPER_ADMIN') {
+    throw new AppError('Company account is not active', 401, 'COMPANY_NOT_ACTIVE');
+  }
+  if (user.company && user.role.name !== 'SUPER_ADMIN') {
+    const issuedCompanyEpoch = payload.companySecurityVersion;
+    const currentCompanyEpoch = user.company.securityVersion;
+    if (!Number.isInteger(issuedCompanyEpoch) || issuedCompanyEpoch !== currentCompanyEpoch) {
+      throw new AppError('Access token is no longer valid', 401, 'INVALID_ACCESS_TOKEN');
+    }
   }
 
   req.user = {

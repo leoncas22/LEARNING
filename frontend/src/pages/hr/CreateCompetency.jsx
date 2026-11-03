@@ -1,21 +1,42 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import HrLayout from '../../layouts/HrLayout';
-import { createCompetency } from '../../services/competencyService';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import HrLayout from "../../layouts/HrLayout";
+import { createCompetency } from "../../services/competencyService";
 
 const INITIAL_LEVELS = [
-  { level: 'BEGINNER', description: 'Foundational understanding and basic application of concepts', minScore: 0, maxScore: 59 },
-  { level: 'INTERMEDIATE', description: 'Applies competency effectively with minimal supervision', minScore: 60, maxScore: 74 },
-  { level: 'ADVANCED', description: 'Independently applies skills in complex, ambiguous scenarios', minScore: 75, maxScore: 89 },
-  { level: 'EXPERT', description: 'Subject matter authority who coaches others and drives standards', minScore: 90, maxScore: 100 },
+  {
+    level: "BEGINNER",
+    description: "Foundational understanding and basic application of concepts",
+    minScore: 0,
+    maxScore: 59,
+  },
+  {
+    level: "INTERMEDIATE",
+    description: "Applies competency effectively with minimal supervision",
+    minScore: 60,
+    maxScore: 74,
+  },
+  {
+    level: "ADVANCED",
+    description: "Independently applies skills in complex, ambiguous scenarios",
+    minScore: 75,
+    maxScore: 89,
+  },
+  {
+    level: "EXPERT",
+    description:
+      "Subject matter authority who coaches others and drives standards",
+    minScore: 90,
+    maxScore: 100,
+  },
 ];
 
 export default function CreateCompetency() {
   const navigate = useNavigate();
 
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState('');
-  const [description, setDescription] = useState('');
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState("");
+  const [description, setDescription] = useState("");
   const [levels, setLevels] = useState(INITIAL_LEVELS);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -24,15 +45,16 @@ export default function CreateCompetency() {
     const updated = [...levels];
     updated[index] = {
       ...updated[index],
-      [field]: field.includes('Score') ? parseInt(value, 10) || 0 : value,
+      [field]: field.includes("Score") ? parseInt(value, 10) || 0 : value,
     };
     setLevels(updated);
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isLoading) return;
     if (!name.trim()) {
-      setError('Competency name is required');
+      setError("Competency name is required");
       return;
     }
 
@@ -50,7 +72,7 @@ export default function CreateCompetency() {
       const created = await createCompetency(payload);
       navigate(`/hr/competencies/${created.id}`);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to create competency');
+      setError(err.response?.data?.message || "Failed to create competency");
     } finally {
       setIsLoading(false);
     }
@@ -60,10 +82,15 @@ export default function CreateCompetency() {
     <HrLayout>
       <div className="max-w-3xl mx-auto space-y-6">
         <div>
-          <Link to="/hr/competencies" className="text-xs font-medium text-gold hover:underline">
+          <Link
+            to="/hr/competencies"
+            className="text-xs font-medium text-gold hover:underline"
+          >
             &larr; Back to Competencies
           </Link>
-          <h1 className="text-2xl font-bold text-espresso mt-1">Create Competency</h1>
+          <h1 className="text-2xl font-bold text-espresso mt-1">
+            Create Competency
+          </h1>
           <p className="text-sm text-espresso/60">
             Define a measurable capability and configure proficiency tiers
           </p>
@@ -78,7 +105,9 @@ export default function CreateCompetency() {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* General Information */}
           <div className="bg-white rounded-2xl border border-border-warm p-6 space-y-4 shadow-sm">
-            <h2 className="text-base font-semibold text-espresso">General Information</h2>
+            <h2 className="text-base font-semibold text-espresso">
+              General Information
+            </h2>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
@@ -126,9 +155,12 @@ export default function CreateCompetency() {
           {/* Proficiency Levels Configuration */}
           <div className="bg-white rounded-2xl border border-border-warm p-6 space-y-4 shadow-sm">
             <div>
-              <h2 className="text-base font-semibold text-espresso">Proficiency Levels & Scoring Bands</h2>
+              <h2 className="text-base font-semibold text-espresso">
+                Proficiency Levels & Scoring Bands
+              </h2>
               <p className="text-xs text-espresso/60 mt-0.5">
-                Configure score thresholds (0–100%) and behavioural descriptions for each tier.
+                Configure score thresholds (0–100%) and behavioural descriptions
+                for each tier.
               </p>
             </div>
 
@@ -149,7 +181,9 @@ export default function CreateCompetency() {
                         min="0"
                         max="100"
                         value={lvl.minScore}
-                        onChange={(e) => handleLevelChange(idx, 'minScore', e.target.value)}
+                        onChange={(e) =>
+                          handleLevelChange(idx, "minScore", e.target.value)
+                        }
                         className="w-16 rounded-lg border border-border-warm px-2 py-1 text-center bg-white"
                       />
                       <span>to</span>
@@ -158,7 +192,9 @@ export default function CreateCompetency() {
                         min="0"
                         max="100"
                         value={lvl.maxScore}
-                        onChange={(e) => handleLevelChange(idx, 'maxScore', e.target.value)}
+                        onChange={(e) =>
+                          handleLevelChange(idx, "maxScore", e.target.value)
+                        }
                         className="w-16 rounded-lg border border-border-warm px-2 py-1 text-center bg-white"
                       />
                       <span>%</span>
@@ -169,7 +205,9 @@ export default function CreateCompetency() {
                     <input
                       type="text"
                       value={lvl.description}
-                      onChange={(e) => handleLevelChange(idx, 'description', e.target.value)}
+                      onChange={(e) =>
+                        handleLevelChange(idx, "description", e.target.value)
+                      }
                       placeholder={`Description for ${lvl.level.toLowerCase()} level...`}
                       className="w-full rounded-xl border border-border-warm px-3 py-2 text-xs text-espresso bg-white focus:outline-none focus:ring-2 focus:ring-gold/50"
                     />
@@ -192,7 +230,7 @@ export default function CreateCompetency() {
               disabled={isLoading}
               className="px-6 py-2.5 rounded-xl bg-espresso text-cream text-sm font-medium hover:bg-espresso/90 transition shadow-sm disabled:opacity-50"
             >
-              {isLoading ? 'Creating...' : 'Create Competency'}
+              {isLoading ? "Creating..." : "Create Competency"}
             </button>
           </div>
         </form>
@@ -200,4 +238,3 @@ export default function CreateCompetency() {
     </HrLayout>
   );
 }
-

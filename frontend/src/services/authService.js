@@ -15,7 +15,8 @@ export async function fetchCurrentUser() {
 }
 
 export async function registerCompany(payload) {
-  const res = await apiClient.post('/auth/register-company', payload);
+  const { companyName, companyEmail, companySlug, adminName, email, password, confirmPassword } = payload;
+  const res = await apiClient.post('/auth/register-company', { companyName, companyEmail, companySlug: companySlug || undefined, adminName, email, password, confirmPassword });
   return res.data.data; // { user, accessToken }
 }
 

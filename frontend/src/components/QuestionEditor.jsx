@@ -33,8 +33,21 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDirty, setIsDirty] = useState(false);
+
+  function markDirty() {
+    setIsDirty(true);
+    setError('');
+  }
+
+  function handleCancel() {
+    if (isSubmitting) return;
+    if (isDirty && !window.confirm('Discard unsaved question changes?')) return;
+    onCancel();
+  }
 
   function handleTypeChange(newType) {
+    markDirty();
     setType(newType);
     if (newType === 'TRUE_FALSE') {
       setOptions(defaultOptionsFor('TRUE_FALSE'));
@@ -44,6 +57,7 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
   }
 
   function updateOption(index, field, value) {
+    markDirty();
     setOptions((prev) => {
       const next = [...prev];
       if (field === 'isCorrect' && type === 'MULTIPLE_CHOICE') {
@@ -56,15 +70,18 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
   }
 
   function addOption() {
+    markDirty();
     setOptions((prev) => [...prev, { optionText: '', isCorrect: false }]);
   }
 
   function removeOption(index) {
+    markDirty();
     setOptions((prev) => prev.filter((_, i) => i !== index));
   }
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (isSubmitting) return;
     setError('');
     setFieldErrors({});
     setIsSubmitting(true);
@@ -81,6 +98,7 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
             : undefined,
       };
       await onSubmit(payload);
+      setIsDirty(false);
     } catch (err) {
       const data = err.response?.data;
       if (data?.error === 'VALIDATION_ERROR' && data.details) setFieldErrors(data.details);
@@ -92,7 +110,7 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {error && <div className="rounded-xl border border-burgundy/20 bg-burgundy/5 text-burgundy text-sm px-4 py-2.5">{error}</div>}
+      {error && <div className="rounded-xl border border-burgundy/20 bg-burgundy/5 text-burgundy text-sm px-4 py-2.5" role="alert">{error}</div>}
 
       <div>
         <label className="block text-sm font-medium text-espresso mb-1.5">Question Type</label>
@@ -107,12 +125,12 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
 
       <div>
         <label className="block text-sm font-medium text-espresso mb-1.5">Question Text</label>
-        <textarea required rows={2} value={questionText} onChange={(e) => setQuestionText(e.target.value)} className={inputClass} />
+        <textarea required rows={2} value={questionText} onChange={(e) => { markDirty(); setQuestionText(e.target.value); }} className={inputClass} />
       </div>
 
       <div>
         <label className="block text-sm font-medium text-espresso mb-1.5">Points</label>
-        <input type="number" min="1" required value={points} onChange={(e) => setPoints(e.target.value)} className={inputClass} />
+        <input type="number" min="1" required value={points} onChange={(e) => { markDirty(); setPoints(e.target.value); }} className={inputClass} />
       </div>
 
       {(type === 'MULTIPLE_CHOICE' || type === 'MULTIPLE_ANSWER') && (
@@ -162,7 +180,7 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
                   type="radio"
                   name="tf-correct"
                   checked={opt.isCorrect}
-                  onChange={() => setOptions((prev) => prev.map((o, i) => ({ ...o, isCorrect: i === index })))}
+                  onChange={() => { markDirty(); setOptions((prev) => prev.map((o, i) => ({ ...o, isCorrect: i === index }))); }}
                   className="w-4 h-4 accent-gold"
                 />
                 {opt.optionText}
@@ -178,7 +196,7 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
           <textarea
             rows={3}
             value={acceptedAnswers}
-            onChange={(e) => setAcceptedAnswers(e.target.value)}
+            onChange={(e) => { markDirty(); setAcceptedAnswers(e.target.value); }}
             className={inputClass}
             placeholder={'One per line, e.g.\nmulti factor authentication\nmulti-factor authentication'}
           />
@@ -191,11 +209,11 @@ export function QuestionEditor({ initial, onSubmit, onCancel, submitLabel = 'Sav
 
       <div>
         <label className="block text-sm font-medium text-espresso mb-1.5">Explanation (optional)</label>
-        <textarea rows={2} value={explanation} onChange={(e) => setExplanation(e.target.value)} className={inputClass} placeholder="Shown to the learner after grading, if enabled." />
+        <textarea rows={2} value={explanation} onChange={(e) => { markDirty(); setExplanation(e.target.value); }} className={inputClass} placeholder="Shown to the learner after grading, if enabled." />
       </div>
 
       <div className="flex justify-end gap-3 pt-2">
-        <button type="button" onClick={onCancel} className="px-4 py-2 rounded-xl border border-border-warm text-sm font-medium text-espresso hover:bg-cream transition">
+        <button type="button" onClick={handleCancel} disabled={isSubmitting} className="px-4 py-2 rounded-xl border border-border-warm text-sm font-medium text-espresso hover:bg-cream transition disabled:opacity-50">
           Cancel
         </button>
         <button type="submit" disabled={isSubmitting} className="px-4 py-2 rounded-xl bg-espresso text-cream text-sm font-medium hover:bg-espresso/90 transition disabled:opacity-50">
